@@ -83,6 +83,7 @@ class DeliveryEvent:
     channel: Channel
     address: str
     at: datetime
+    message_id: Optional[str] = None
 
 
 @dataclass(frozen=True)

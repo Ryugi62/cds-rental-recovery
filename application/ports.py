@@ -17,6 +17,14 @@ class SendRecord:
     delivered: bool = False
 
 
+@dataclass(frozen=True)
+class InboundMail:
+    sender: str
+    subject: str
+    text: str
+    message_id: str
+
+
 class Clock(Protocol):
     def now_local(self) -> datetime: ...
 
