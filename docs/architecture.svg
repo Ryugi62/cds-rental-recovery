@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="640" viewBox="0 0 1000 640" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif" font-size="15">
+  <rect width="1000" height="640" fill="#ffffff"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#191f28"/></marker>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8b95a1"/></marker>
+  </defs>
+  <text x="24" y="36" font-size="22" font-weight="700" fill="#191f28">cds-rental-recovery: every send passes the gate; every event changes the next decision</text>
+
+  <!-- customer -->
+  <rect x="24" y="250" width="150" height="110" rx="14" fill="#f2f4f6" stroke="#191f28"/>
+  <text x="99" y="285" text-anchor="middle" font-weight="700">Customer</text>
+  <text x="99" y="310" text-anchor="middle">email inbox</text>
+  <text x="99" y="332" text-anchor="middle">phone (SMS)</text>
+
+  <!-- CDS column -->
+  <rect x="230" y="70" width="210" height="540" rx="16" fill="#fff7e6" stroke="#d48806"/>
+  <text x="335" y="98" text-anchor="middle" font-weight="700" fill="#8a5a00">AWS CDS</text>
+  <rect x="250" y="115" width="170" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-width="2"/>
+  <text x="335" y="145" text-anchor="middle" font-weight="700">Amazon SES</text><text x="335" y="167" text-anchor="middle">send + config set</text>
+  <rect x="250" y="215" width="170" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-dasharray="7 5"/>
+  <text x="335" y="245" text-anchor="middle" font-weight="700">End User Messaging</text><text x="335" y="267" text-anchor="middle">SMS + config set</text>
+  <rect x="250" y="440" width="170" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-dasharray="7 5"/>
+  <text x="335" y="470" text-anchor="middle" font-weight="700">SES receiving</text><text x="335" y="492" text-anchor="middle">receipt rule (domain)</text>
+  <rect x="250" y="320" width="170" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-width="2"/>
+  <text x="335" y="350" text-anchor="middle" font-weight="700">CloudWatch</text><text x="335" y="372" text-anchor="middle">event metrics</text>
+
+  <!-- events path -->
+  <rect x="500" y="215" width="150" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-dasharray="7 5"/>
+  <text x="575" y="245" text-anchor="middle" font-weight="700">Amazon SNS</text><text x="575" y="267" text-anchor="middle">events topic</text>
+  <rect x="500" y="440" width="150" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-dasharray="7 5"/>
+  <text x="575" y="470" text-anchor="middle" font-weight="700">Amazon SNS</text><text x="575" y="492" text-anchor="middle">inbound topic</text>
+  <rect x="690" y="215" width="130" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-dasharray="7 5"/>
+  <text x="755" y="245" text-anchor="middle" font-weight="700">Lambda</text><text x="755" y="267" text-anchor="middle">events_handler</text>
+  <rect x="690" y="440" width="130" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-dasharray="7 5"/>
+  <text x="755" y="470" text-anchor="middle" font-weight="700">Lambda</text><text x="755" y="492" text-anchor="middle">inbound_handler</text>
+
+  <!-- core -->
+  <rect x="500" y="70" width="476" height="110" rx="16" fill="#e8f3ff" stroke="#3182f6" stroke-width="2"/>
+  <text x="738" y="98" text-anchor="middle" font-weight="700" fill="#1b64da">RecoveryService (domain + application, unit-tested)</text>
+  <rect x="520" y="112" width="140" height="52" rx="10" fill="#fff" stroke="#191f28" stroke-width="2"/>
+  <text x="590" y="135" text-anchor="middle" font-weight="700">Outbound gate</text><text x="590" y="155" text-anchor="middle" font-size="14">4 verdicts, 1 path</text>
+  <rect x="676" y="112" width="135" height="52" rx="10" fill="#fff" stroke="#191f28" stroke-width="2"/>
+  <text x="743" y="135" text-anchor="middle" font-weight="700">Event decisions</text><text x="743" y="155" text-anchor="middle" font-size="14">block, opt-out, nudge</text>
+  <rect x="826" y="112" width="135" height="52" rx="10" fill="#fff" stroke="#191f28" stroke-width="2"/>
+  <text x="893" y="135" text-anchor="middle" font-weight="700">Reply reader</text><text x="893" y="155" text-anchor="middle" font-size="14">qty, date vs ledger</text>
+
+  <rect x="860" y="250" width="116" height="60" rx="12" fill="#fff" stroke="#8b95a1" stroke-dasharray="2 4"/>
+  <text x="918" y="276" text-anchor="middle" font-weight="700" fill="#4e5968">AgentCore</text><text x="918" y="296" text-anchor="middle" fill="#4e5968" font-size="14">agent (planned)</text>
+  <rect x="860" y="340" width="116" height="80" rx="12" fill="#f2f4f6" stroke="#191f28" stroke-width="2"/>
+  <text x="918" y="366" text-anchor="middle" font-weight="700">Ledger</text><text x="918" y="386" text-anchor="middle" font-size="14">posting or</text><text x="918" y="404" text-anchor="middle" font-size="14">hand-off item</text>
+
+  <!-- arrows -->
+  <path d="M520 150 L425 150" stroke="#191f28" stroke-width="2" marker-end="url(#a)"/>
+  <path d="M520 160 Q470 210 425 245" stroke="#191f28" stroke-dasharray="7 5" fill="none" marker-end="url(#a)"/>
+  <path d="M250 150 Q200 180 160 250" stroke="#191f28" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M250 250 L178 290" stroke="#191f28" stroke-dasharray="7 5" marker-end="url(#a)"/>
+  <path d="M120 362 Q160 470 248 475" stroke="#191f28" stroke-dasharray="7 5" fill="none" marker-end="url(#a)"/>
+  <path d="M335 187 L335 318" stroke="#191f28" stroke-width="2" marker-end="url(#a)"/>
+  <path d="M420 355 Q700 330 742 166" stroke="#191f28" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M422 170 Q470 200 498 240" stroke="#191f28" stroke-dasharray="7 5" fill="none" marker-end="url(#a)"/>
+  <path d="M422 250 L498 250" stroke="#191f28" stroke-dasharray="7 5" marker-end="url(#a)"/>
+  <path d="M652 250 L688 250" stroke="#191f28" stroke-dasharray="7 5" marker-end="url(#a)"/>
+  <path d="M755 213 L748 168" stroke="#191f28" stroke-dasharray="7 5" marker-end="url(#a)"/>
+  <path d="M422 475 L498 475" stroke="#191f28" stroke-dasharray="7 5" marker-end="url(#a)"/>
+  <path d="M652 475 L688 475" stroke="#191f28" stroke-dasharray="7 5" marker-end="url(#a)"/>
+  <path d="M822 460 Q880 300 893 168" stroke="#191f28" stroke-dasharray="7 5" fill="none" marker-end="url(#a)"/>
+  <path d="M918 248 Q760 210 600 168" stroke="#8b95a1" stroke-dasharray="2 4" fill="none" marker-end="url(#g)"/>
+  <path d="M918 168 L918 338" stroke="#191f28" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- legend -->
+  <rect x="500" y="540" width="476" height="80" rx="12" fill="#f9fafb" stroke="#e5e8eb"/>
+  <path d="M516 563 L566 563" stroke="#191f28" stroke-width="2"/><text x="576" y="568">run live on AWS, 2026-10-26 (docs/live)</text>
+  <path d="M516 586 L566 586" stroke="#191f28" stroke-dasharray="7 5"/><text x="576" y="591">code + tests + template.yaml, not deployed yet</text>
+  <path d="M516 609 L566 609" stroke="#8b95a1" stroke-dasharray="2 4"/><text x="576" y="614" fill="#4e5968">planned (scripted agent stands in today)</text>
+</svg>

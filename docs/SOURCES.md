@@ -1,0 +1,17 @@
+# Sources for AWS and market facts used in this repo
+
+Each sentence below was compared with the page on the date shown. Result: match, or what we changed.
+
+| Claim (where) | Source | Read | Result |
+|---|---|---|---|
+| SES sandbox: 200 emails per 24 h, 1 per second (README "Live SES run") | docs.aws.amazon.com/ses/latest/dg/quotas.html ("If your account is in the sandbox, you can send up to 200 emails per 24-hour period" / "1 email per second"); also `get_account` on our account | 2026-10-26 | match |
+| SES outbound $0.10 per 1,000 emails (docs/ROI.md) | aws.amazon.com/ses/pricing ("Outbound email $0.10 / 1,000 emails") | 2026-10-26 | match |
+| SES receiving needs a domain with an MX record (README, AGENTS.md) | docs.aws.amazon.com/ses/latest/dg/receiving-email-mx-record.html ("Publishing an MX record for Amazon SES email receiving") | 2026-10-26 | match |
+| End User Messaging SMS event types (adapters/eum_sms.py, template.yaml) | docs.aws.amazon.com/sms-voice/latest/userguide/configuration-sets-event-types.html (TEXT_DELIVERED, TEXT_BLOCKED, TEXT_CARRIER_BLOCKED, TEXT_UNREACHABLE, TEXT_CARRIER_UNREACHABLE, TEXT_INVALID, ...) | 2026-10-26 | **changed**: our parser had mapped an "OPT_OUT" event type that the docs do not list; removed, STOP now comes from the two-way inbound message (`parse_sms_inbound`) |
+| Receipt rule set activation (AGENTS.md, template.yaml) | AWS::SES::ReceiptRuleSet reference page | 2026-10-26 | **changed**: we had written "CloudFormation cannot activate a rule set"; the page did not settle it, so the sentence now says "if receiving does not start, activate it" |
+| Korea: SMS two-way not supported (SPEC non-goal) | docs.aws.amazon.com/sms-voice/latest/userguide/phone-numbers-sms-by-country.html (Korea row) | 2026-10-26 | row read; column meaning not re-checked, so the README does not state it |
+| Campaign orchestrator holds sends to fatigued customers (README table) | aws.amazon.com/blogs/messaging-and-targeting/build-an-ai-campaign-orchestrator-with-amazon-bedrock-and-aws-end-user-messaging/ ("The fatigue limit is a per-customer count of sends") | 2026-10-26 | match |
+| Mail Manager sample has a machine-readable deployment guide (README table) | aws.amazon.com/blogs/messaging-and-targeting/build-an-ai-email-pipeline-with-amazon-bedrock-and-ses-mail-manager/ ("a machine-readable agentic deployment guide") | 2026-10-26 | match |
+| RCS sample uses AGENTS.md (README table) | aws.amazon.com/blogs/messaging-and-targeting/setting-up-an-rcs-agent-with-an-ai-coding-assistant-and-aws-end-user-messaging/ ("encodes all of this knowledge into an AGENTS.md file") | 2026-10-26 | match |
+| Booqable late returns, reminder templates; EZRentOut overdue view; Chaser email and SMS payment reminders (README table) | booqable.com/features, ezrentout.com, chaserhq.com | 2026-10-26 | match (Point of Rental page returned 403, not used) |
+| Korea 2026 minimum hourly wage 10,320 KRW (docs/ROI.md) | minimumwage.go.kr main page ("2026년 적용 최저임금 시급 10,320원") | 2026-10-26 | match |

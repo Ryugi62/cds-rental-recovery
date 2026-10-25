@@ -3,7 +3,7 @@ import pathlib, re, subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SKIP = {".venv", ".git", ".pytest_cache", "__pycache__"}
-PATTERNS = [r"[A-Za-z0-9._%+-]+@(gmail|naver|daum|kakao)\.(com|net)", r"\bprojects/", r"\[\[", r"AKIA[0-9A-Z]{16}"]
+PATTERNS = [r"[A-Za-z0-9._%+-]+@(gmail|naver|daum|kakao)\.(com|net)", r"\bprojects/", r"\[\[", r"AKIA[0-9A-Z]{16}", "메인 판단", "발송 전 지울 것", "회신 대기", r"\bJarvis\b"]
 
 
 def files():

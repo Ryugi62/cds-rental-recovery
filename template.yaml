@@ -142,4 +142,4 @@ Outputs:
   InboundRuleSetName:
     Condition: HasInboundDomain
     Value: !Ref InboundRuleSet
-    Description: Activate once with `aws ses set-active-receipt-rule-set --rule-set-name <this>` (not settable in CloudFormation).
+    Description: Only one rule set is active per region. If receiving does not start, run `aws ses set-active-receipt-rule-set --rule-set-name <this>`.

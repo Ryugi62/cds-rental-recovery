@@ -13,8 +13,8 @@ Written for an AI coding assistant (or a person) deploying this repo into their 
 ```
 sam deploy --stack-name cds-rental-recovery --resolve-s3 --capabilities CAPABILITY_IAM --parameter-overrides SenderEmail=<address you own>
 ```
-Optional SES receiving: add `InboundDomain=<domain with MX to inbound-smtp.<region>.amazonaws.com>`, then once:
-`aws ses set-active-receipt-rule-set --rule-set-name <InboundRuleSetName output>` (CloudFormation cannot activate a rule set).
+Optional SES receiving: add `InboundDomain=<domain with MX to inbound-smtp.<region>.amazonaws.com>`. Only one receipt rule set is active per region; if mail is not received, run
+`aws ses set-active-receipt-rule-set --rule-set-name <InboundRuleSetName output>`.
 
 ## 3. Post-deploy checks
 1. Click the SES verification link sent to `SenderEmail`.

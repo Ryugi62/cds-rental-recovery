@@ -108,7 +108,19 @@ def test_sms_event_stop_and_delivery_and_failure():
     assert parse_sms_event({**base, "eventType": "TEXT_BLOCKED"}).kind is EventKind.BOUNCE
     assert parse_sms_event({**base, "eventType": "TEXT_UNREACHABLE"}).kind is EventKind.BOUNCE
     assert parse_sms_event({**base, "eventType": "TEXT_QUEUED"}) is None
-    assert parse_sms_event({"eventType": "OPT_OUT", "destinationPhoneNumber": "+10000000001", "eventTimestamp": 1}).kind is EventKind.OPT_OUT
+    # "OPT_OUT" is not an End User Messaging event type (docs: configuration-sets-event-types, read 2026-10-26)
+    assert parse_sms_event({"eventType": "OPT_OUT", "destinationPhoneNumber": "+10000000001", "eventTimestamp": 1}) is None
+    assert parse_sms_event({**base, "eventType": "TEXT_CARRIER_BLOCKED"}).kind is EventKind.BOUNCE
+
+
+def test_sms_inbound_stop_keyword_is_opt_out_and_other_text_is_a_reply():
+    from adapters.eum_sms import parse_sms_inbound
+    stop = {"originationNumber": "+10000000001", "destinationNumber": "+10000000002", "messageBody": " stop ",
+            "inboundMessageId": "in-1"}
+    ev, text = parse_sms_inbound(stop, at=datetime(2026, 10, 26, 3, 0))
+    assert ev.kind is EventKind.OPT_OUT and ev.address == "+10000000001" and text is None
+    ev, text = parse_sms_inbound({**stop, "messageBody": "3 back on Thursday"}, at=datetime(2026, 10, 26, 3, 0))
+    assert ev is None and text == "3 back on Thursday"
 
 
 def test_make_client_is_lazy_and_does_not_call():

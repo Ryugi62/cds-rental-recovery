@@ -40,3 +40,10 @@ def test_roi_doc_numbers_match_the_formula():
     shown = {k: int(v.replace(",", "")) for k, v in re.findall(r"<!--roi:(\w+)-->(-?[\d,]+)<!--/roi-->", doc)}
     real = {k: round(v) for k, v in scenarios(overdue_per_month=40).items()}
     assert shown == real
+
+
+def test_readme_quotes_the_same_base_number():
+    import pathlib
+    readme = (pathlib.Path(__file__).resolve().parent.parent / "README.md").read_text()
+    base = round(scenarios(overdue_per_month=40)["base"])
+    assert f"{base:,} KRW" in readme
