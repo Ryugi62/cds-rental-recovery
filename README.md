@@ -3,7 +3,7 @@
 A small equipment-rental shop chases every overdue item by hand: a text or email asking "when will you bring it back?", then a ledger update. This repo runs that conversation end to end on AWS Communication Developer Services (Amazon SES and End User Messaging SMS): open the overdue item, send through an outbound gate (PASS, HOLD, BLOCK or APPROVAL, shown before every send, human or agent), read the reply into quantity and date, check it against the ledger, then post it and close, or hand it to a person with a reason. Delivery, bounce and opt-out events change the next decision.
 Value is stated as a formula with its lower bound: `N × c × m / 60 × w − N × s × p` ([docs/ROI.md](docs/ROI.md)); base case 23,578 KRW (about $17) per month for 40 overdue items at minimum wage, low case below zero.
 
-**Try it in 3 minutes, no AWS account, no login, no install:** `python3 -m infrastructure.web` then open http://127.0.0.1:8765 (Python 3.9+, standard library only). At step 10 type your own customer reply; the reader and ledger check run on your text. All data on the screen is synthetic.
+**Try it in 3 minutes, no AWS account, no login, no install:** `python3 -m infrastructure.web` then open http://127.0.0.1:8765 (Python 3.9+, standard library only). At step 10 type your own customer reply; the reader and ledger check run on your text. All data on the screen is synthetic. Example: "We will drop off all 3 tomorrow morning" reads as 3 units, next day, matches the ledger ([screenshot](docs/screens/try-your-reply.png), fresh browser, no login).
 
 ## How this differs from what already exists
 

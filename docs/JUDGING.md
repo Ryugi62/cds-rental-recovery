@@ -9,3 +9,12 @@ Criteria quoted from the Official Rules, section 6 (aws-cds-partner.devpost.com/
 | Demo Presentation (20%) | "Does it include the end-to-end workflow?" | Gate screen, 11 steps from overdue item to ledger row (`docs/screens/`), local demo in one command | Video not yet recorded |
 | Creativity (10%) | not a copy of a sample | README "How this differs" table (3 AWS samples, 3 products) | |
 | Functionality (10%) | works as described | README test count (`tools/check_readme.py` fails if it drifts), `docs/FAILURES.md` (11 failure types, each with a test), live SES log | |
+
+## Prize tracks
+
+| Track | Requirement (rules section 8) | This project |
+|---|---|---|
+| Overall 1st to 3rd | any eligible submission | entered |
+| Best WhatsApp Solution (Meta) | uses End User Messaging Social (WhatsApp) | not entered: no WhatsApp channel |
+
+Rules: "A project can only win one (1) Prize", so there is no second track to stack; the overall track is the only one.
