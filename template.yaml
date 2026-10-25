@@ -1,0 +1,145 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  cds-rental-recovery - SES + End User Messaging SMS events feed the outbound gate; SES receiving feeds the reply reader.
+  Deploy: sam deploy --guided  (see AGENTS.md for preflight and post-deploy checks)
+
+Parameters:
+  SenderEmail:
+    Type: String
+    Description: Address you own; SES sends a verification mail to it.
+  InboundDomain:
+    Type: String
+    Default: ""
+    Description: Optional. A domain you control with an MX record to inbound-smtp.<region>.amazonaws.com. Empty = no SES receiving.
+
+Conditions:
+  HasInboundDomain: !Not [!Equals [!Ref InboundDomain, ""]]
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 10
+    MemorySize: 128
+    CodeUri: .
+
+Resources:
+  SenderIdentity:
+    Type: AWS::SES::EmailIdentity
+    Properties:
+      EmailIdentity: !Ref SenderEmail
+
+  EventsTopic:
+    Type: AWS::SNS::Topic
+
+  EventsTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics: [!Ref EventsTopic]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: [ses.amazonaws.com, sms-voice.amazonaws.com]}
+            Action: sns:Publish
+            Resource: !Ref EventsTopic
+            Condition: {StringEquals: {"aws:SourceAccount": !Ref AWS::AccountId}}
+
+  EmailConfigSet:
+    Type: AWS::SES::ConfigurationSet
+    Properties:
+      Name: cds-rr
+
+  EmailEventsToSns:
+    Type: AWS::SES::ConfigurationSetEventDestination
+    DependsOn: EventsTopicPolicy
+    Properties:
+      ConfigurationSetName: !Ref EmailConfigSet
+      EventDestination:
+        Name: cds-rr-sns
+        Enabled: true
+        MatchingEventTypes: [delivery, bounce, complaint]
+        SnsDestination:
+          TopicARN: !Ref EventsTopic
+
+  SmsConfigSet:
+    Type: AWS::SMSVOICE::ConfigurationSet
+    DependsOn: EventsTopicPolicy
+    Properties:
+      ConfigurationSetName: cds-rr-sms
+      EventDestinations:
+        - EventDestinationName: cds-rr-sms-sns
+          Enabled: true
+          MatchingEventTypes: [TEXT_DELIVERED, TEXT_BLOCKED, TEXT_INVALID, TEXT_UNREACHABLE, TEXT_CARRIER_UNREACHABLE]
+          SnsDestination:
+            TopicArn: !Ref EventsTopic
+
+  EventsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: infrastructure.lambda_handlers.events_handler
+      Events:
+        Delivery:
+          Type: SNS
+          Properties:
+            Topic: !Ref EventsTopic
+
+  InboundTopic:
+    Type: AWS::SNS::Topic
+    Condition: HasInboundDomain
+
+  InboundFunction:
+    Type: AWS::Serverless::Function
+    Condition: HasInboundDomain
+    Properties:
+      Handler: infrastructure.lambda_handlers.inbound_handler
+      Events:
+        Received:
+          Type: SNS
+          Properties:
+            Topic: !Ref InboundTopic
+
+  InboundTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Condition: HasInboundDomain
+    Properties:
+      Topics: [!Ref InboundTopic]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: ses.amazonaws.com}
+            Action: sns:Publish
+            Resource: !Ref InboundTopic
+            Condition: {StringEquals: {"aws:SourceAccount": !Ref AWS::AccountId}}
+
+  InboundRuleSet:
+    Type: AWS::SES::ReceiptRuleSet
+    Condition: HasInboundDomain
+
+  InboundRule:
+    Type: AWS::SES::ReceiptRule
+    Condition: HasInboundDomain
+    DependsOn: InboundTopicPolicy
+    Properties:
+      RuleSetName: !Ref InboundRuleSet
+      Rule:
+        Enabled: true
+        ScanEnabled: true
+        Recipients: [!Sub "reply@${InboundDomain}"]
+        Actions:
+          - SNSAction:
+              TopicArn: !Ref InboundTopic
+              Encoding: UTF-8
+
+Outputs:
+  EmailConfigurationSet:
+    Value: !Ref EmailConfigSet
+  SmsConfigurationSet:
+    Value: !Ref SmsConfigSet
+  EventsTopicArn:
+    Value: !Ref EventsTopic
+  InboundRuleSetName:
+    Condition: HasInboundDomain
+    Value: !Ref InboundRuleSet
+    Description: Activate once with `aws ses set-active-receipt-rule-set --rule-set-name <this>` (not settable in CloudFormation).

@@ -17,6 +17,7 @@ from .ports import Agent, Clock, Ledger, Registry, Sender, SendRecord
 class SendOutcome:
     verdict: GateVerdict
     message_id: Optional[str] = None
+    send_error: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -73,7 +74,14 @@ class RecoveryService:
         elif verdict.verdict is Verdict.HOLD:
             self.held.append((thread, req, verdict))
         elif verdict.verdict is Verdict.PASS:
-            mid = self.senders[req.channel].send(req)
+            try:
+                mid = self.senders[req.channel].send(req)
+            except Exception as exc:  # provider error, throttling, network: never silent, never retried blindly
+                err = f"{type(exc).__name__}: {exc}"
+                self.registry.log("SEND_FAILED", {"item": thread.item.item_id, "channel": req.channel.value,
+                                                  "error": err})
+                thread.handoff("send_failed")
+                return SendOutcome(verdict, None, err)
             self.registry.record_send(cust, SendRecord(mid, req.recipient, req.channel, now))
             thread.mark_sent()
             return SendOutcome(verdict, mid)

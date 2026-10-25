@@ -21,9 +21,10 @@ from domain.models import Channel, OutboundRequest, Requester, UnreturnedItem  #
 from infrastructure.aws_clients import make_client  # noqa: E402
 
 LOG, STATE = ROOT / "docs/live/live-log.jsonl", ROOT / "docs/live/state.json"
-REGION, SOURCE, CONFIG_SET = "us-east-1", "owner@verified-inbox.example", "cds-rr"
+REGION, CONFIG_SET = "us-east-1", "cds-rr"
+SOURCE = os.environ.get("CDS_SENDER", "")  # your SES-verified address; never committed
 CASES = {  # case tag -> (customer, recipient). Synthetic customers; recipients are owner/simulator only.
-    "self": ("C-S", "owner@verified-inbox.example"),
+    "self": ("C-S", SOURCE),  # owner inbox = the verified sender itself
     "success": ("C-OK", "success@simulator.amazonses.com"),
     "bounce": ("C-BN", "bounce@simulator.amazonses.com"),
     "complaint": ("C-CP", "complaint@simulator.amazonses.com"),

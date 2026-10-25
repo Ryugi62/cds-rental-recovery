@@ -12,7 +12,7 @@ python3 -m venv .venv && .venv/bin/pip install pytest boto3
 .venv/bin/python -m infrastructure.web   # open http://127.0.0.1:8765
 ```
 
-Tests: <!--tests-->88<!--/tests--> passing (`tools/check_readme.py` fails if this number drifts).
+Tests: <!--tests-->105<!--/tests--> passing (`tools/check_readme.py` fails if this number drifts).
 
 ## Layers (no reverse imports, enforced by `tests/test_layers.py`)
 
