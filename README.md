@@ -1,7 +1,7 @@
 # Rental Recovery: an end-to-end agentic workflow on SES and SMS that stops before it over-sends
 
 A small equipment-rental shop chases every overdue item by hand: a text or email asking "when will you bring it back?", then a ledger update. This repo runs that conversation end to end on AWS Communication Developer Services (Amazon SES and End User Messaging SMS): open the overdue item, send through an outbound gate (PASS, HOLD, BLOCK or APPROVAL, shown before every send, human or agent), read the reply into quantity and date, check it against the ledger, then post it and close, or hand it to a person with a reason. Delivery, bounce and opt-out events change the next decision.
-Value is stated as a formula with its lower bound: `N × c × m / 60 × w − N × s × p` ([docs/ROI.md](docs/ROI.md)); base case 23,578 KRW (about $17) per month for 40 overdue items at minimum wage, low case below zero.
+**What is different:** an AI agent's proposal cannot get around the gate either (one dispatch point, test `test_g11_no_path_to_sender_except_gate`), and the customer's answer is checked against the ledger before anything is posted. The customer scene is a market where two-way SMS is supported (United States, Canada, United Kingdom, Australia in the End User Messaging country table); in South Korea two-way SMS is not supported, so there the conversation runs on email only.
 
 **Try it in 3 minutes, no AWS account, no login, no install:** `python3 -m infrastructure.web` then open http://127.0.0.1:8765 (Python 3.9+, standard library only). At step 10 type your own customer reply; the reader and ledger check run on your text. All data on the screen is synthetic. Example: "We will drop off all 3 tomorrow morning" reads as 3 units, next day, matches the ledger ([screenshot](docs/screens/try-your-reply.png), fresh browser, no login).
 
@@ -17,8 +17,9 @@ Read from each product's public page on 2026-10-26. "Not shown" means we did not
 | [Booqable](https://booqable.com/features/) (rental software) | Marks late returns in a dashboard; email reminder templates | Not shown: reading the customer's answer and checking it against the ledger |
 | [EZRentOut](https://www.ezrentout.com/) (rental software) | One view of what is out, due back or overdue | Not shown: two-way messaging with a send gate |
 | [Chaser](https://www.chaserhq.com/) (invoice chasing) | Email and SMS payment reminders, AI email generator | Built for invoices, not equipment returns; not shown: event-driven stop after bounce or opt-out |
+| [SES account-level suppression list](https://docs.aws.amazon.com/ses/latest/dg/sending-email-suppression-list.html) and [SMS opt-out list](https://docs.aws.amazon.com/sms-voice/latest/userguide/opt-out-list.html) (built into AWS) | SES: hard bounces and complaints are listed; a send to a listed address is accepted but not delivered, and still counts toward the daily sending quota. SMS: a number that replies STOP is listed and later messages to it are not sent | We keep both on as the last line. The gate decides earlier and on more: quiet hours, daily cap and approval for amounts or legal words, before the provider is called (0 calls, 0 quota), and the event moves the conversation itself (switch channel or hand off to a person), not only the address |
 
-**Only here:** every send, including one an AI agent proposes, shows its gate verdict before it leaves, and SES/SMS events and the customer's reply change the next decision instead of a fixed reminder schedule.
+**Only here:** every send, including one an AI agent proposes or a model drafts, shows its gate verdict before it leaves, and SES/SMS events and the customer's reply change the next decision instead of a fixed reminder schedule.
 
 ## What is real and what is simulated
 
@@ -29,7 +30,12 @@ Read from each product's public page on 2026-10-26. "Not shown" means we did not
 | SES receiving, SNS, Lambda (`template.yaml`) | Code, unit tests, `cfn-lint` pass; not deployed (author's IAM user lacks CloudFormation) | `tests/test_lambda_handlers.py`, [AGENTS.md](AGENTS.md) |
 | End User Messaging SMS send and events | Adapter and parsers unit-tested; no live SMS sent | `tests/test_adapters.py` |
 | AI agent | A scripted agent stands in for AgentCore; it goes through the same gate | `test_g11_no_path_to_sender_except_gate` |
+| Reply-reading assist on Amazon Bedrock (Converse, Nova Micro), called only when the regex reader's confidence is below 0.8 | Code and 17 tests (fake client). Live: 3 Converse calls attempted on 2026-10-26, all refused by IAM (`AccessDeniedException`); each ended in a logged hand-off, not a silent pass. No model answer is live yet | `adapters/bedrock.py`, `tests/test_reply_assist.py`, `docs/live/bedrock-log.jsonl` |
+| Closure rate 8 of 14 reply variants | Measures the gate and hand-off rules, not language understanding (regex reader, synthetic replies) | `infrastructure/variant_eval.py` |
+| Deployment (`template.yaml`) | Not deployed | `cfn-lint` only |
 | Screen | Synthetic data, labelled on every screen | `docs/screens/` |
+
+Value is stated as a formula with its lower bound: `N × c × m / 60 × w − N × s × p` ([docs/ROI.md](docs/ROI.md)); base case 23,578 KRW (about $17) per month for 40 overdue items at minimum wage, low case below zero.
 
 ![Architecture](docs/architecture.png)
 
@@ -49,12 +55,12 @@ python3 -m venv .venv && .venv/bin/pip install pytest boto3
 .venv/bin/python -m infrastructure.web   # open http://127.0.0.1:8765
 ```
 
-Tests: <!--tests-->107<!--/tests--> passing (`tools/check_readme.py` fails if this number drifts).
+Tests: <!--tests-->124<!--/tests--> passing (`tools/check_readme.py` fails if this number drifts).
 
 ## Layers (no reverse imports, enforced by `tests/test_layers.py`)
 
 `domain/` gate policies, reply reading, thread states, event decisions. `application/` use cases and ports.
-`adapters/` SES send/inbound/events, End User Messaging SMS, in-memory fakes. `infrastructure/` boto3 client factory (no calls), demo story, web screen.
+`adapters/` SES send/inbound/events, End User Messaging SMS, Bedrock reply assist, in-memory fakes. `infrastructure/` boto3 client factory (no calls), demo story, web screen.
 
 ## Gate screen
 
@@ -84,7 +90,7 @@ Closed 8 of 14 (57%); all 8 expected-closed reached CLOSED; the 6 others handed 
 
 ## Not done yet
 
-SES receiving on a verified domain, a live End User Messaging SMS send, a CloudFormation deploy by the author, an AgentCore agent. See SPEC.md S1, S3, S5.
+SES receiving on a verified domain, a live End User Messaging SMS send, a CloudFormation deploy by the author (not deployed), an AgentCore agent, a live Bedrock answer (the author's IAM user has no `bedrock:InvokeModel`; with it, `AWS_PROFILE=<p> python3 tools/live_bedrock.py` is the one command). See SPEC.md S1, S3, S5, G13.
 
 ## Pre-existing work and license
 

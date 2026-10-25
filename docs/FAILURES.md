@@ -15,5 +15,7 @@ No silent failures: each row ends in a visible state (BLOCK, HOLD, APPROVAL queu
 | 9 | Money or legal wording | Waits for a person; agent cannot approve itself | APPROVAL queue | `test_g4_approval_waits_for_human_then_sends`, `test_agent_cannot_self_approve` |
 | 10 | No consent for the channel | Blocked | BLOCK `no_consent` | `test_block_when_no_consent` |
 | 11 | Agent tries to send around the gate | No code path exists | Layer test | `test_g11_no_path_to_sender_except_gate` |
+| 12 | Reply-reading model refused, throttled or answers in the wrong shape (Bedrock) | Logged `ASSIST_FAILED`; the reply falls back to the regex reading and a low-confidence reply is handed off | Hand-off item `low_confidence`; live example in `docs/live/bedrock-log.jsonl` (IAM refusal) | `test_g13_assist_failure_is_logged_and_hands_off`, `test_g13_bedrock_non_json_raises`, `test_g13_bedrock_bad_types_raise` |
+| 13 | Model invents a quantity the customer did not write | Answer not used (grounding check); hand-off | Hand-off item | `test_g13_invented_quantity_is_rejected`, `test_g13_invented_quantity_hands_off` |
 
 Across 14 synthetic reply variants every thread ended CLOSED or HANDOFF, none silent: `test_every_variant_ends_closed_or_handed_off_never_silent`.

@@ -1,7 +1,7 @@
 """The only place boto3 clients are created. Creation only; nothing here calls AWS."""
 from __future__ import annotations
 
-_SERVICES = {"ses": "ses", "eum": "pinpoint-sms-voice-v2"}
+_SERVICES = {"ses": "ses", "eum": "pinpoint-sms-voice-v2", "bedrock": "bedrock-runtime"}
 
 
 def make_client(service: str, region: str, boto3_module=None):

@@ -69,6 +69,7 @@ class ReplyReading:
     return_date: Optional[date]
     confidence: float
     raw: str = ""
+    source: str = "regex"  # regex | assist (model answer that passed grounding)
 
 
 @dataclass(frozen=True)

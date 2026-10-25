@@ -25,6 +25,20 @@ class InboundMail:
     message_id: str
 
 
+@dataclass(frozen=True)
+class AssistSuggestion:
+    """What a language model proposes for a low-confidence reply. Untrusted until grounded by the domain."""
+    quantity: Optional[int]
+    return_date: Optional[date]
+    follow_up: Optional[str]
+    model: str
+    all_units: bool = False
+
+
+class ReplyAssistant(Protocol):
+    def suggest(self, text: str, today: date) -> AssistSuggestion: ...
+
+
 class Clock(Protocol):
     def now_local(self) -> datetime: ...
 

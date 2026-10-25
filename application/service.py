@@ -7,10 +7,10 @@ from typing import Dict, List, Optional, Tuple
 from domain.events import Decision, decide_after_event
 from domain.gate import GateContext, evaluate
 from domain.models import (Channel, Comparison, DeliveryEvent, GateVerdict, LedgerPosting, OutboundRequest,
-                           ReplyReading, Verdict)
-from domain.reading import compare_with_ledger, read_reply
+                           ReplyReading, Requester, ThreadState, Verdict)
+from domain.reading import CONFIDENT, compare_with_ledger, ground_suggestion, read_reply
 from domain.thread import RecoveryThread, open_thread, is_unreturned
-from .ports import Agent, Clock, Ledger, Registry, Sender, SendRecord
+from .ports import Agent, AssistSuggestion, Clock, Ledger, Registry, ReplyAssistant, Sender, SendRecord
 
 
 @dataclass(frozen=True)
@@ -25,12 +25,14 @@ class ReplyResult:
     reading: ReplyReading
     comparison: Comparison
     proposed_posting: Optional[LedgerPosting]
+    follow_up: Optional[SendOutcome] = None  # a model-drafted question, after its gate verdict
 
 
 class RecoveryService:
     def __init__(self, ledger: Ledger, registry: Registry, senders: Dict[Channel, Sender], clock: Clock,
-                 agent: Optional[Agent] = None):
+                 agent: Optional[Agent] = None, assistant: Optional[ReplyAssistant] = None):
         self.ledger, self.registry, self.senders, self.clock, self.agent = ledger, registry, senders, clock, agent
+        self.assistant = assistant
         self.pending_approvals: List[Tuple[RecoveryThread, OutboundRequest]] = []
         self.held: List[Tuple[RecoveryThread, OutboundRequest, GateVerdict]] = []
 
@@ -88,14 +90,46 @@ class RecoveryService:
         return SendOutcome(verdict)
 
     def handle_reply(self, thread: RecoveryThread, text: str) -> ReplyResult:
-        reading = read_reply(text, self.clock.now_local().date())
+        today = self.clock.now_local().date()
+        reading = read_reply(text, today)
+        suggestion = self._assist(thread, text, today) if reading.confidence < CONFIDENT else None
+        if suggestion is not None:
+            assisted = ground_suggestion(text, today, suggestion.quantity, suggestion.return_date,
+                                         thread.item.quantity, suggestion.all_units)
+            self.registry.log("ASSIST", {"item": thread.item.item_id, "model": suggestion.model,
+                                         "grounded_qty": assisted.quantity, "grounded_date": str(assisted.return_date),
+                                         "confidence": assisted.confidence})
+            if assisted.confidence > reading.confidence:
+                reading = assisted
         cmp = compare_with_ledger(reading, thread.item)
         self.registry.log("READ", {"item": thread.item.item_id, "match": cmp.matches, "reason": cmp.reason,
-                                   "confidence": reading.confidence})
-        if not cmp.matches:
+                                   "confidence": reading.confidence, "source": reading.source})
+        if cmp.matches:
+            return ReplyResult(reading, cmp, LedgerPosting(thread.item.item_id, reading.return_date, reading.quantity))
+        follow = self._follow_up(thread, suggestion)
+        waiting = follow is not None and follow.send_error is None and follow.verdict.verdict is not Verdict.BLOCK
+        if not waiting and thread.state is not ThreadState.HANDOFF:
             thread.handoff(cmp.reason)
-            return ReplyResult(reading, cmp, None)
-        return ReplyResult(reading, cmp, LedgerPosting(thread.item.item_id, reading.return_date, reading.quantity))
+        return ReplyResult(reading, cmp, None, follow)
+
+    def _assist(self, thread: RecoveryThread, text: str, today) -> Optional[AssistSuggestion]:
+        if self.assistant is None:
+            return None
+        try:
+            return self.assistant.suggest(text, today)
+        except Exception as exc:  # model denied, throttled or malformed: logged, then the normal hand-off path
+            self.registry.log("ASSIST_FAILED", {"item": thread.item.item_id, "error": f"{type(exc).__name__}: {exc}"[:200]})
+            return None
+
+    def _follow_up(self, thread: RecoveryThread, suggestion: Optional[AssistSuggestion]) -> Optional[SendOutcome]:
+        """A question the model drafted is just another AGENT request: same gate, same single dispatch point."""
+        if suggestion is None or not suggestion.follow_up or thread.state not in (ThreadState.OPEN, ThreadState.WAITING):
+            return None
+        for ch in thread.channels:
+            addr = self.ledger.contact(thread.item.customer_id, ch)
+            if addr:
+                return self.request_send(thread, OutboundRequest(ch, addr, suggestion.follow_up, Requester.AGENT))
+        return None
 
     def confirm_posting(self, thread: RecoveryThread, result: ReplyResult) -> None:
         if result.proposed_posting is None:
