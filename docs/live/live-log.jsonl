@@ -1,0 +1,19 @@
+{"at": "2026-10-25T20:01:35+00:00", "kind": "SEND", "case": "self", "to": "owner@verified-inbox.example", "verdict": "PASS", "reason": "ok", "message_id": "010001a174a778e2-b41354d4-925c-4a6a-9bbe-174643de7e40-000000"}
+{"at": "2026-10-25T20:01:36+00:00", "kind": "SEND", "case": "success", "to": "success@simulator.amazonses.com", "verdict": "PASS", "reason": "ok", "message_id": "010001a174a77d67-a6b44ce3-bea0-4578-9ab1-38de93c15884-000000"}
+{"at": "2026-10-25T20:01:37+00:00", "kind": "SEND", "case": "bounce", "to": "bounce@simulator.amazonses.com", "verdict": "PASS", "reason": "ok", "message_id": "010001a174a7816f-35d435ec-3e95-4afb-b90e-28bf15ccabf6-000000"}
+{"at": "2026-10-25T20:01:38+00:00", "kind": "SEND", "case": "complaint", "to": "complaint@simulator.amazonses.com", "verdict": "PASS", "reason": "ok", "message_id": "010001a174a7858e-a46ddc81-784d-4822-a52f-c309bf876aa4-000000"}
+{"at": "2026-10-25T20:04:16+00:00", "kind": "EVENTS", "case": "self", "kinds": ["DELIVERY"]}
+{"at": "2026-10-25T20:04:16+00:00", "kind": "DECISION", "case": "self", "event": "DELIVERY", "block_address": false, "opt_out_customer": false, "handoff": false, "note": "delivered; nudge timer started"}
+{"at": "2026-10-25T20:04:17+00:00", "kind": "RETRY_SEND", "case": "self", "verdict": "PASS", "reason": "ok", "ses_called": true}
+{"at": "2026-10-25T20:04:19+00:00", "kind": "EVENTS", "case": "success", "kinds": ["DELIVERY"]}
+{"at": "2026-10-25T20:04:19+00:00", "kind": "DECISION", "case": "success", "event": "DELIVERY", "block_address": false, "opt_out_customer": false, "handoff": false, "note": "delivered; nudge timer started"}
+{"at": "2026-10-25T20:04:20+00:00", "kind": "RETRY_SEND", "case": "success", "verdict": "PASS", "reason": "ok", "ses_called": true}
+{"at": "2026-10-25T20:04:21+00:00", "kind": "EVENTS", "case": "bounce", "kinds": ["BOUNCE"]}
+{"at": "2026-10-25T20:04:21+00:00", "kind": "DECISION", "case": "bounce", "event": "BOUNCE", "block_address": true, "opt_out_customer": false, "handoff": true, "note": "bounced and no other channel"}
+{"at": "2026-10-25T20:04:21+00:00", "kind": "RETRY_SEND", "case": "bounce", "verdict": "BLOCK", "reason": "address_blocked", "ses_called": false}
+{"at": "2026-10-25T20:04:23+00:00", "kind": "EVENTS", "case": "complaint", "kinds": ["DELIVERY", "OPT_OUT"]}
+{"at": "2026-10-25T20:04:23+00:00", "kind": "DECISION", "case": "complaint", "event": "DELIVERY", "block_address": false, "opt_out_customer": false, "handoff": false, "note": "delivered; nudge timer started"}
+{"at": "2026-10-25T20:04:23+00:00", "kind": "DECISION", "case": "complaint", "event": "OPT_OUT", "block_address": false, "opt_out_customer": true, "handoff": true, "note": "customer opted out; all sends blocked"}
+{"at": "2026-10-25T20:04:23+00:00", "kind": "RETRY_SEND", "case": "complaint", "verdict": "BLOCK", "reason": "opt_out", "ses_called": false}
+{"at": "2026-10-25T20:05:15+00:00", "kind": "REPLY_READ", "text": "Sorry for the delay. I'll bring back 3 on Thursday.", "quantity": 3, "date": "2026-10-29", "confidence": 0.9, "matches": true, "reason": "match"}
+{"at": "2026-10-25T20:05:15+00:00", "kind": "POSTED", "item": "L-self", "state": "CLOSED"}

@@ -16,17 +16,22 @@ SUBJECT = "Equipment return check"
 class SesEmailSender:
     channel = Channel.EMAIL
 
-    def __init__(self, client, source: str):
-        self._client, self._source = client, source
+    def __init__(self, client, source: str, config_set: Optional[str] = None, tags: Optional[dict] = None):
+        self._client, self._source, self._config_set, self._tags = client, source, config_set, tags
 
     def send(self, req: OutboundRequest) -> str:
         if req.channel is not Channel.EMAIL:
             raise ValueError("SesEmailSender only sends EMAIL")
-        resp = self._client.send_email(
+        kwargs = dict(
             Source=self._source,
             Destination={"ToAddresses": [req.recipient]},
             Message={"Subject": {"Data": SUBJECT}, "Body": {"Text": {"Data": req.text}}},
         )
+        if self._config_set:
+            kwargs["ConfigurationSetName"] = self._config_set
+        if self._tags:
+            kwargs["Tags"] = [{"Name": k, "Value": v} for k, v in self._tags.items()]
+        resp = self._client.send_email(**kwargs)
         return resp["MessageId"]
 
 

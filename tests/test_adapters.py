@@ -127,3 +127,52 @@ def test_make_client_is_lazy_and_does_not_call():
 def test_fake_sender_records_calls():
     s = FakeSender(Channel.EMAIL); s.send(email_req())
     assert len(s.calls) == 1
+
+
+# --- live-run support: config set + tags on send, CloudWatch metric events -------------------------------------
+def test_ses_sender_passes_config_set_and_tags():
+    c = StubSes()
+    SesEmailSender(c, "desk@example.test", config_set="cds-rr", tags={"case": "t1"}).send(email_req())
+    kw = c.calls[0]
+    assert kw["ConfigurationSetName"] == "cds-rr" and kw["Tags"] == [{"Name": "case", "Value": "t1"}]
+
+
+def test_ses_sender_without_config_set_sends_no_extra_keys():
+    c = StubSes()
+    SesEmailSender(c, "desk@example.test").send(email_req())
+    assert "ConfigurationSetName" not in c.calls[0] and "Tags" not in c.calls[0]
+
+
+class StubCw:
+    """list_metrics only returns metrics that have received data, so presence == the event happened."""
+    def __init__(self, present):
+        self.present, self.calls = present, []
+
+    def list_metrics(self, **kw):
+        self.calls.append(kw)
+        return {"Metrics": [{"Namespace": kw["Namespace"], "MetricName": kw["MetricName"]}] if kw["MetricName"] in self.present else []}
+
+
+def _poll(present, tag="t1"):
+    from adapters.ses_metrics import CloudWatchSesEvents
+    return CloudWatchSesEvents(StubCw(present), dimension="case").poll(tag, "c1@example.test")
+
+
+def test_cloudwatch_events_turn_present_metrics_into_delivery_events():
+    evs = _poll({"Delivery"})
+    assert [e.kind for e in evs] == [EventKind.DELIVERY] and evs[0].address == "c1@example.test"
+
+
+def test_cloudwatch_events_map_bounce_and_complaint():
+    assert {e.kind for e in _poll({"Bounce", "Complaint"})} == {EventKind.BOUNCE, EventKind.OPT_OUT}
+
+
+def test_cloudwatch_events_empty_when_no_metric():
+    assert _poll(set()) == []
+
+
+def test_cloudwatch_events_filter_by_tag_dimension():
+    from adapters.ses_metrics import CloudWatchSesEvents
+    c = StubCw({"Delivery"})
+    CloudWatchSesEvents(c, dimension="case").poll("t9", "a@x.test")
+    assert c.calls[0]["Dimensions"] == [{"Name": "case", "Value": "t9"}]
