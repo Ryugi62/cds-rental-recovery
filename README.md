@@ -35,6 +35,8 @@ Events read back from the CloudWatch destination of the SES configuration set, t
 | bounce@ | BOUNCE | address blocked, no other channel, hand-off | BLOCK address_blocked, SES calls 0 |
 | complaint@ | DELIVERY + OPT_OUT | customer opted out, hand-off | BLOCK opt_out, SES calls 0 |
 
+Limits measured on this account (`get_account`): 200 sends per 24 h, 1 send per second (sandbox); only verified addresses and the simulator can receive. Failure path: BOUNCE and OPT_OUT end in a hand-off item, never a silent retry.
+
 Reply leg: a reply typed into the owner's inbox ("I'll bring back 3 on Thursday") was read back and parsed: qty 3, 2026-10-29, confidence 0.9, matches ledger, posted, thread CLOSED.
 Not real: SES did not receive that reply. SES inbound needs a verified domain with an MX record, which this account does not have (buying one is a cost decision). The reply therefore travelled by Gmail, not SES receiving. The send from the owner's own Gmail address to itself was reported Delivered by SES but never appeared in Gmail (forged-sender drop), so the S1 round trip is partial.
 
