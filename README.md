@@ -144,7 +144,7 @@ Closed 8 of 14 (57%); all 8 expected-closed reached CLOSED; the 6 others handed 
 
 ## Not done yet
 
-SES receiving on a verified domain (no owned domain), events pushed by SNS into the Lambda (SNS denied to the IAM user; events are read from CloudWatch instead), a CloudFormation deploy (CreateStack denied), SMS to a real phone (the sandbox allows only verified numbers; we used simulator numbers), a stored ledger, an AgentCore agent. The live Bedrock run is `AWS_PROFILE=<p> python3 tools/live_bedrock.py`. See SPEC.md S1, S3, S5, G13.
+Two-way SMS replies from End User Messaging into SNS (not built: only the opt-out parser `parse_sms_inbound` exists as code, with no SNS wiring or deployment; replies come back by email only), SES receiving on a verified domain (no owned domain), events pushed by SNS into the Lambda (SNS denied to the IAM user; events are read from CloudWatch instead), a CloudFormation deploy (CreateStack denied), SMS to a real phone (the sandbox allows only verified numbers; we used simulator numbers), a stored ledger, an AgentCore agent. The live Bedrock run is `AWS_PROFILE=<p> python3 tools/live_bedrock.py`. See SPEC.md S1, S3, S5, G13.
 
 ## Pre-existing work and license
 
