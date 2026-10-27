@@ -1,12 +1,12 @@
 # Rental Recovery: an end-to-end agentic workflow on SES and SMS that stops before it over-sends
 
-Small rental shops chase overdue equipment by phone and text. Here, a thread that closes by customer reply and matches the ledger saves about $0.76 of staff time (assumed 6 minutes at Korea's 2026 minimum wage). The shop pays $0.25 per closed thread; threads handed to a person cost no fee. AWS usage is billed to the shop's own account.
+Small rental shops chase overdue equipment by hand, and an AI agent that helps can over-send. Here, every message, from a person or an agent, goes through one gate first; a thread that closes by customer reply and matches the ledger saves about $0.73 of staff time (assumed 6 minutes at the US federal minimum wage of $7.25, [dol.gov](https://www.dol.gov/agencies/whd/minimum-wage), read 2026-10-27; South Korea is email only, own figure in [docs/ROI.md](docs/ROI.md)). The shop pays $0.25 per closed thread; threads handed to a person cost no fee. The lower bound is shown, not hidden: an unclosed thread costs at most its AWS send cost ($0.0002 for 2 emails, $0.024 for 2 texts), and one closed thread covers 30 unclosed text threads. AWS usage is billed to the shop's own account.
 
 A small equipment-rental shop chases every overdue item by hand: a text or email asking "when will you bring it back?", then a ledger update. This repo runs that conversation end to end on AWS Communication Developer Services (Amazon SES and End User Messaging SMS): open the overdue item, send through an outbound gate (PASS, HOLD, BLOCK or APPROVAL, shown before every send, human or agent), read the reply into quantity and date, check it against the ledger, then post it and close, or hand it to a person with a reason. Delivery, bounce and opt-out events change the next decision.
 
 **What is different:** an AI agent's proposal cannot get around the gate either (one dispatch point, test `test_g11_no_path_to_sender_except_gate`), and the customer's answer is checked against the ledger before anything is posted. The customer scene is a market where two-way SMS is supported (United States, Canada, United Kingdom, Australia in the End User Messaging country table); in South Korea two-way SMS is not supported, so there the conversation runs on email only.
 
-**Try it in 3 minutes, no AWS account, no login, no install:** `python3 -m infrastructure.web` then open http://127.0.0.1:8765 (Python 3.9+, standard library only). At step 10 type your own customer reply; the reader and ledger check run on your text. All data on the screen is synthetic. Example: "We will drop off all 3 tomorrow morning" reads as 3 units, next day, matches the ledger ([screenshot](docs/screens/try-your-reply.png), fresh browser, no login).
+**Try it in 3 minutes, no AWS account, no login, no install:** `python3 -m infrastructure.web` then open http://127.0.0.1:8765 (Python 3.9+, standard library only). At step 10 type your own customer reply; the reader and ledger check run on your text. All data on the screen is synthetic. Example: "We will drop off all 3 on Thursday morning" reads as 3 units, Oct 29, matches the ledger ([screenshot](docs/screens/try-your-reply.png), fresh browser, no login).
 
 ## How this differs from what already exists
 
@@ -34,12 +34,12 @@ Read from each product's public page on 2026-10-26. "Not shown" means we did not
 | Lambda `events_handler` | Deployed without CloudFormation (`tools/deploy_direct.py`) and invoked 3 times: SMS delivery shape carrying the real SMS message id, SES bounce, and an unknown type that comes back `ignored: 1`. The invocations used documented event shapes; AWS did not push them, because SNS is denied to the IAM user | `docs/live/deploy-log.jsonl`, `docs/screens/aws-lambda-deploy.png` |
 | SES receiving, SNS topics, inbound Lambda (`template.yaml`) | Code, unit tests, `cfn-lint` pass; not deployed. SES receiving needs a domain with an MX record, which this account does not own; SNS `CreateTopic` is refused by IAM | `tests/test_lambda_handlers.py`, [AGENTS.md](AGENTS.md) |
 | AI agent | A scripted agent stands in for AgentCore; it goes through the same gate | `test_g11_no_path_to_sender_except_gate` |
-| Reply-reading assist on Amazon Bedrock (Converse, Nova Micro), called only when the regex reader's confidence is below 0.8 | Code and 17 tests (fake client). Live: 3 Converse calls on 2026-10-27 succeeded (192 input+output tokens on the first, about $0.00003 for all three); 2 answers were grounded in the customer's words and matched the ledger, the third stayed unread and nothing was guessed. An earlier attempt on 2026-10-26 was refused by IAM (`AccessDeniedException`) and ended in logged hand-offs; both runs are in the log | `adapters/bedrock.py`, `tests/test_reply_assist.py`, `docs/live/bedrock-log.jsonl` |
+| Reply-reading assist on Amazon Bedrock (Converse, Nova Micro), called only when the regex reader's confidence is below 0.8 | Code and 17 tests (fake client). Live: 3 Converse calls on 2026-10-27 succeeded (192 input+output tokens on the first, about $0.00003 for all three); 2 answers were grounded in the customer's words and matched the ledger, the third stayed unread and nothing was guessed. Known limit: the first reply says Saturday (Oct 31 on the run's clock, Oct 26) and the model returned Oct 30; the ledger check compares quantity and a date inside the 14-day window, not weekday against date. An earlier attempt on 2026-10-26 was refused by IAM (`AccessDeniedException`) and ended in logged hand-offs; both runs are in the log | `adapters/bedrock.py`, `tests/test_reply_assist.py`, `docs/live/bedrock-log.jsonl` |
 | Closure rate 8 of 14 reply variants | Measures the gate and hand-off rules, not language understanding (regex reader, synthetic replies) | `infrastructure/variant_eval.py` |
 | Deployment (`template.yaml`) | CloudFormation `CreateStack` refused by IAM on 2026-10-27 (logged). The parts the IAM user may create were deployed directly: Lambda `cds-rr-events`, SMS configuration set `cds-rr-sms`; SES configuration set `cds-rr` exists from the SES run | `docs/live/deploy-log.jsonl` |
 | Screen | Synthetic data, labelled on every screen | `docs/screens/` |
 
-Value is stated as a formula with its lower bound: `N × c × m / 60 × w − N × s × p` ([docs/ROI.md](docs/ROI.md)); base case 23,578 KRW (about $17) per month for 40 overdue items at minimum wage, low case below zero.
+Value is stated as a formula with its lower bound: `N × c × m / 60 × w − N × s × p` ([docs/ROI.md](docs/ROI.md)); base case 23,578 KRW (about $17) per month for 40 overdue items at the Korean minimum wage, or $16.56 at the US federal minimum wage (US row in the same file); low case below zero by the send cost only ($0.008 for 40 threads).
 
 ![Architecture](docs/architecture.png)
 
@@ -59,7 +59,36 @@ python3 -m venv .venv && .venv/bin/pip install pytest boto3
 .venv/bin/python -m infrastructure.web   # open http://127.0.0.1:8765
 ```
 
-Tests: <!--tests-->132<!--/tests--> passing (`tools/check_readme.py` fails if this number drifts).
+Tests: <!--tests-->135<!--/tests--> passing (`tools/check_readme.py` fails if this number drifts).
+
+## AWS reproduction
+
+Everything above runs locally with no account. To repeat the live runs in your own AWS account (us-east-1, SES and SMS sandboxes; only verified addresses and AWS simulator numbers receive), the IAM user needs these actions. The list is read from the API calls in the code (`grep` for `send_email`, `send_text_message`, `converse`, ...), not from memory:
+
+| Step | Code that calls it | IAM actions |
+|---|---|---|
+| Send email through the gate | `adapters/ses.py` (`send_email`) | `ses:SendEmail` on a verified identity |
+| Read SES events back (no SNS) | `adapters/ses_metrics.py` (`list_metrics`) | `cloudwatch:ListMetrics` |
+| Send text, read opt-outs | `adapters/eum_sms.py` (`send_text_message`, `describe_opted_out_numbers`), `tools/live_sms.py` (`describe_phone_numbers`, `put_opted_out_number`) | `sms-voice:SendTextMessage`, `sms-voice:DescribeOptedOutNumbers`, `sms-voice:DescribePhoneNumbers`, `sms-voice:PutOptedOutNumber`; a SIMULATOR origination number must exist first (`sms-voice:RequestPhoneNumber`, requested by hand once, $1 a month) |
+| Read SMS delivery back | `adapters/sms_metrics.py` (`get_metric_data`, namespace `AWS/SMSVoice`) | `cloudwatch:GetMetricData` |
+| Reply assist | `adapters/bedrock.py` (`converse`) | `bedrock:InvokeModel` on `amazon.nova-micro-v1:0` (model access enabled for the account) |
+| Deploy without CloudFormation | `tools/deploy_direct.py` | `sms-voice:DescribeConfigurationSets`, `sms-voice:CreateConfigurationSet`, `iam:GetRole`, `iam:PassRole` (the role you pass), `lambda:GetFunction`, `lambda:CreateFunction`, `lambda:UpdateFunctionCode`, `lambda:InvokeFunction`, `sns:CreateTopic` (optional, skipped and logged when refused) |
+| Deploy with CloudFormation | `template.yaml` | the CloudFormation, Lambda, IAM-role, SNS, SES, SMS Voice and S3 actions the stack creates (see [AGENTS.md](AGENTS.md)) |
+
+Deploy with the template (needs the actions in the last row):
+
+```
+sam deploy --stack-name cds-rental-recovery --resolve-s3 --capabilities CAPABILITY_IAM --parameter-overrides SenderEmail=<address you own>
+```
+
+Without CloudFormation (what the author had to use; no IAM role or policy is created or changed):
+
+```
+AWS_PROFILE=<p> CDS_LAMBDA_ROLE=<existing role with AWSLambdaBasicExecutionRole> python3 tools/deploy_direct.py deploy
+AWS_PROFILE=<p> python3 tools/deploy_direct.py invoke   # one Lambda invocation per event shape
+```
+
+Then the live runs: `AWS_PROFILE=<p> python3 tools/live_ses.py send` then `settle`; `python3 tools/live_sms.py send <case>` then `settle <case>`; `python3 tools/live_bedrock.py`. The errors this account got instead (CloudFormation `CreateStack` and SNS `CreateTopic` refused) are kept unedited in `docs/live/deploy-log.jsonl`.
 
 ## Layers (no reverse imports, enforced by `tests/test_layers.py`)
 

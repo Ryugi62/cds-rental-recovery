@@ -47,3 +47,26 @@ def test_readme_quotes_the_same_base_number():
     readme = (pathlib.Path(__file__).resolve().parent.parent / "README.md").read_text()
     base = round(scenarios(overdue_per_month=40)["base"])
     assert f"{base:,} KRW" in readme
+
+
+def test_us_closed_thread_is_six_minutes_at_federal_minimum_wage():
+    from domain.roi import us_closed_thread_value_usd
+    assert us_closed_thread_value_usd() == pytest.approx(0.725)
+
+
+def test_us_scenarios_ordered_low_negative_and_doc_numbers_match():
+    import pathlib, re
+    from domain.roi import us_scenarios
+    s = us_scenarios(40)
+    assert s["low"] < 0.0 < s["base"] < s["high"]
+    doc = (pathlib.Path(__file__).resolve().parent.parent / "docs" / "ROI.md").read_text()
+    shown = {k: float(v) for k, v in re.findall(r"<!--roi-us:(\w+)-->(-?[\d.]+)<!--/roi-->", doc)}
+    assert shown == {k: round(v, 2) for k, v in s.items()}
+
+
+def test_unclosed_thread_loss_is_send_cost_only_and_one_close_covers_many():
+    from domain.roi import unclosed_thread_max_loss_usd, closed_threads_to_break_even, EUM_USD_PER_SMS_MAX
+    assert unclosed_thread_max_loss_usd() == pytest.approx(0.0002)
+    sms_loss = unclosed_thread_max_loss_usd(2, EUM_USD_PER_SMS_MAX)
+    assert sms_loss == pytest.approx(0.0239)
+    assert int(closed_threads_to_break_even(sms_loss)) == 30

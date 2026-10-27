@@ -2,7 +2,7 @@
 
 **Who pays:** a small equipment-rental shop (cameras, tools, event gear) that chases overdue returns by phone and text today.
 **Price:** USD 0.25 per thread that closes without a person (reply read, matched to the ledger, posted). Threads handed to a person cost nothing. AWS usage (SES $0.10 per 1,000 emails, SMS by country) is billed by AWS to the shop's own account.
-**Why that price:** at the Korean 2026 minimum wage a closed thread saves about 1,032 KRW (6 minutes, `docs/ROI.md`), about USD 0.76; the shop keeps about two thirds of the saving even at the lowest wage, and pays nothing when the reader closes nothing.
+**Why that price:** at the US federal minimum wage ($7.25, dol.gov) a closed thread saves about USD 0.73 (6 minutes, `docs/ROI.md`; the Korean figure, 1,032 KRW, is in the same file); the shop keeps about two thirds of the saving even at the lowest wage, and pays nothing when the reader closes nothing.
 **Install steps (per shop):** 1) `sam deploy` from `AGENTS.md` into the shop's AWS account, 2) verify the shop's sender address or domain, 3) import the ledger of overdue items (CSV columns: item, customer, quantity, due date, email, phone, consent per channel), 4) set quiet hours and daily cap, 5) run the preflight and post-deploy checks.
 **Throughput limits:** SES sandbox 200 emails per 24 h and 1 per second until production access; the gate caps each customer at 2 messages per day; the regex reader takes about 0.01 ms per reply (measured 2026-10-26 on a laptop, 2,000 runs; no model call), so reading is never the limit.
 **ACE opportunity:** to be registered in AWS Partner Central under the hackathon campaign before submission (ID added here then).

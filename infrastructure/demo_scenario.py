@@ -95,7 +95,7 @@ def build_story(reply_text: str = DEFAULT_REPLY) -> Story:
             "3 cinema camera kits were due Oct 15. The thread opens with the channels this customer agreed to.")
     rec.send("Text message goes first", "Customers answer texts fastest. The gate checks consent, cap and hours before anything is sent.",
              _req(Channel.SMS, PHONE, "Hi, this is Sample Rentals. Can you confirm when the 3 camera kits come back?"))
-    rec.event("The text bounces back", "The carrier reports the number unreachable. The number is stopped and the next channel is suggested.",
+    rec.event("The text bounces back", "The carrier reports the number unreachable. The number is stopped. This customer also agreed to email, so email is next; with no other channel the thread hands off to a person (the live run did).",
               DeliveryEvent(EventKind.BOUNCE, Channel.SMS, PHONE, rec.clock.now, "fake-sms-1"), "fake-sms-1")
     rec.clock.now = datetime(2026, 10, 22, 22, 10)
     rec.send("Email at night is held", "The email is ready at 22:10. Quiet hours run 21:00 to 08:00, so nothing leaves yet.",
