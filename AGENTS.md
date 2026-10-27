@@ -25,4 +25,6 @@ Optional SES receiving: add `InboundDomain=<domain with MX to inbound-smtp.<regi
 
 ## Status of this guide (honest)
 - Preflight 1 to 3: run by the author, passing (see README test count).
-- Deploy and post-deploy 3 to 5: not yet run by the author. The author's IAM user is denied CloudFormation (`ListStacks`, `ValidateTemplate`: AccessDenied, 2026-10-26), so the template is checked by `cfn-lint` and the handlers by unit tests only. The live sends in `docs/live/` used the same adapters without CloudFormation.
+- Deploy and post-deploy 3 to 5: not run by the author through CloudFormation. The author's IAM user is denied CloudFormation (`ListStacks`, `ValidateTemplate`: AccessDenied, 2026-10-26; `CreateStack`: AccessDenied, 2026-10-27, `docs/live/deploy-log.jsonl`) and SNS (`CreateTopic`: AuthorizationError). The author does not widen its own IAM policy for this.
+- What was deployed instead (2026-10-27, `tools/deploy_direct.py`, no IAM change): the SMS configuration set `cds-rr-sms` and the Lambda function `cds-rr-events` (the template's `events_handler`, on an existing logs-only role), invoked once per event shape. SES receiving stays out: it needs a domain with an MX record, which this account does not own (the template keeps it behind `InboundDomain`).
+- Live sends in `docs/live/` used the same adapters without CloudFormation: SES (2026-10-26) and End User Messaging SMS from a simulator number (2026-10-27, `tools/live_sms.py`).

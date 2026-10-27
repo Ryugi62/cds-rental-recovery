@@ -28,12 +28,13 @@ Read from each product's public page on 2026-10-26. "Not shown" means we did not
 |---|---|---|
 | SES sends through the gate (4) and DELIVERY, BOUNCE, OPT_OUT events read back | Real, us-east-1 sandbox, mailbox simulator and owner inbox only | `docs/live/live-log.jsonl`, `docs/live/EXCERPT.md` |
 | Customer reply read into quantity and date, posted, thread CLOSED | Reading is real; the reply travelled by the owner's Gmail, not SES receiving | live-log lines 18-19 |
-| SES receiving, SNS, Lambda (`template.yaml`) | Code, unit tests, `cfn-lint` pass; not deployed (author's IAM user lacks CloudFormation) | `tests/test_lambda_handlers.py`, [AGENTS.md](AGENTS.md) |
-| End User Messaging SMS send and events | Adapter and parsers unit-tested; no live SMS sent | `tests/test_adapters.py` |
+| End User Messaging SMS sends through the gate, and the result read back | Real, us-east-1 SMS sandbox, AWS simulator numbers only (the traffic stays inside AWS, no phone receives it): 3 sends PASS from a simulator origination number; delivery read back from CloudWatch `AWS/SMSVoice` (DELIVERY), the failure number not delivered (BOUNCE, retry BLOCK with 0 SMS calls), the account opt-out list read back (OPT_OUT, retry BLOCK with 0 SMS calls). Events come from CloudWatch counts, one send per minute, because the IAM user may not create an SNS event destination | `docs/live/sms-log.jsonl`, `tools/live_sms.py`, `adapters/sms_metrics.py`, `docs/screens/aws-sms-live.png` |
+| Lambda `events_handler` | Deployed without CloudFormation (`tools/deploy_direct.py`) and invoked 3 times: SMS delivery shape carrying the real SMS message id, SES bounce, and an unknown type that comes back `ignored: 1`. The invocations used documented event shapes; AWS did not push them, because SNS is denied to the IAM user | `docs/live/deploy-log.jsonl`, `docs/screens/aws-lambda-deploy.png` |
+| SES receiving, SNS topics, inbound Lambda (`template.yaml`) | Code, unit tests, `cfn-lint` pass; not deployed. SES receiving needs a domain with an MX record, which this account does not own; SNS `CreateTopic` is refused by IAM | `tests/test_lambda_handlers.py`, [AGENTS.md](AGENTS.md) |
 | AI agent | A scripted agent stands in for AgentCore; it goes through the same gate | `test_g11_no_path_to_sender_except_gate` |
 | Reply-reading assist on Amazon Bedrock (Converse, Nova Micro), called only when the regex reader's confidence is below 0.8 | Code and 17 tests (fake client). Live: 3 Converse calls on 2026-10-27 succeeded (192 input+output tokens on the first, about $0.00003 for all three); 2 answers were grounded in the customer's words and matched the ledger, the third stayed unread and nothing was guessed. An earlier attempt on 2026-10-26 was refused by IAM (`AccessDeniedException`) and ended in logged hand-offs; both runs are in the log | `adapters/bedrock.py`, `tests/test_reply_assist.py`, `docs/live/bedrock-log.jsonl` |
 | Closure rate 8 of 14 reply variants | Measures the gate and hand-off rules, not language understanding (regex reader, synthetic replies) | `infrastructure/variant_eval.py` |
-| Deployment (`template.yaml`) | Not deployed | `cfn-lint` only |
+| Deployment (`template.yaml`) | CloudFormation `CreateStack` refused by IAM on 2026-10-27 (logged). The parts the IAM user may create were deployed directly: Lambda `cds-rr-events`, SMS configuration set `cds-rr-sms`; SES configuration set `cds-rr` exists from the SES run | `docs/live/deploy-log.jsonl` |
 | Screen | Synthetic data, labelled on every screen | `docs/screens/` |
 
 Value is stated as a formula with its lower bound: `N × c × m / 60 × w − N × s × p` ([docs/ROI.md](docs/ROI.md)); base case 23,578 KRW (about $17) per month for 40 overdue items at minimum wage, low case below zero.
@@ -56,7 +57,7 @@ python3 -m venv .venv && .venv/bin/pip install pytest boto3
 .venv/bin/python -m infrastructure.web   # open http://127.0.0.1:8765
 ```
 
-Tests: <!--tests-->124<!--/tests--> passing (`tools/check_readme.py` fails if this number drifts).
+Tests: <!--tests-->132<!--/tests--> passing (`tools/check_readme.py` fails if this number drifts).
 
 ## Layers (no reverse imports, enforced by `tests/test_layers.py`)
 
@@ -84,6 +85,19 @@ Limits measured on this account (`get_account`): 200 sends per 24 h, 1 send per 
 Reply leg: a reply typed into the owner's inbox ("I'll bring back 3 on Thursday") was read back and parsed: qty 3, 2026-10-29, confidence 0.9, matches ledger, posted, thread CLOSED.
 Not real: SES did not receive that reply. SES inbound needs a verified domain with an MX record, which this account does not have (buying one is a cost decision). The reply therefore travelled by Gmail, not SES receiving. The send from the owner's own Gmail address to itself was reported Delivered by SES but never appeared in Gmail (forged-sender drop), so the S1 round trip is partial.
 
+## Live SMS run (2026-10-27, us-east-1, SMS sandbox, simulator numbers)
+
+Log: `docs/live/sms-log.jsonl` ([screen](docs/screens/aws-sms-live.png)). Cost checked first from the AWS pricing page (`docs/live/cost-check.md`): simulator number $1 a month, sends at the standard rate; the account's own SMS limit is $1 a month and every call carries `MaxPrice` 0.02.
+Each send goes through `RecoveryService` + `EumSmsSender` from a SIMULATOR origination number; the result is read back from CloudWatch `AWS/SMSVoice` (`CloudWatchSmsDelivery`) or from the account opt-out list (`SmsOptOutList`) and fed to `handle_event`:
+
+| case | read back | decision | same send retried |
+|---|---|---|---|
+| success simulator number | sent 1, delivered 1: DELIVERY | delivered, nudge timer | PASS (SMS sent again) |
+| failure simulator number | sent 1, delivered 0 after 10 min: BOUNCE | bounced and no other channel, hand-off | BLOCK address_blocked, SMS calls 0 |
+| success number on the opt-out list | OPT_OUT (STOP stand-in: a simulator cannot reply, so the owner listed it) | customer opted out, hand-off | BLOCK opt_out, SMS calls 0 |
+
+Measured spend: 3 SMS at $0.00774 each (the account's `TextMessageMonthlySpend` metric) = about $0.023, plus the simulator number lease of $1.00 a month.
+
 ## Reply variants (k = 14, synthetic, `python3 -m infrastructure.variant_eval`)
 
 Same recovery conversation, 14 customer replies (8 clean in English/Korean/ISO/abbreviations, 6 that must go to a human). Labels were written before the run.
@@ -91,7 +105,7 @@ Closed 8 of 14 (57%); all 8 expected-closed reached CLOSED; the 6 others handed 
 
 ## Not done yet
 
-SES receiving on a verified domain, a live End User Messaging SMS send, a CloudFormation deploy by the author (not deployed), an AgentCore agent. The live Bedrock run is `AWS_PROFILE=<p> python3 tools/live_bedrock.py`. See SPEC.md S1, S3, S5, G13.
+SES receiving on a verified domain (no owned domain), events pushed by SNS into the Lambda (SNS denied to the IAM user; events are read from CloudWatch instead), a CloudFormation deploy (CreateStack denied), SMS to a real phone (the sandbox allows only verified numbers; we used simulator numbers), an AgentCore agent. The live Bedrock run is `AWS_PROFILE=<p> python3 tools/live_bedrock.py`. See SPEC.md S1, S3, S5, G13.
 
 ## Pre-existing work and license
 

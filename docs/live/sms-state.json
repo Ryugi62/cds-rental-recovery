@@ -1,0 +1,13 @@
+{
+ "sends": {
+  "success": {
+   "message_id": "adb6a1e9-c3a8-4a8a-adfb-9dfc16ab20dd",
+   "at": "2026-10-27T10:45:18+00:00"
+  },
+  "failure": {
+   "message_id": "35f81854-1b85-40d7-b6be-5538ce4b077b",
+   "at": "2026-10-27T10:47:12+00:00"
+  }
+ },
+ "count": 3
+}

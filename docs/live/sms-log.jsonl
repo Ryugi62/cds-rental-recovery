@@ -1,0 +1,14 @@
+{"at":"2026-10-27T10:41:20Z","kind":"COST_CHECK","sms_fixed_usd_month":1.0,"sms_per_msg_usd_max":0.01195,"account_tier":"SANDBOX","text_spend_limit_usd":1,"verdict":"proceed"}
+{"at": "2026-10-27T10:43:21Z", "kind": "REQUEST_SIMULATOR_NUMBER", "status": "PENDING", "number_type": "SIMULATOR", "phone_number_id": "phone-ddb7abae156644b18f1d277dfa3cd731", "monthly_leasing_price": "1.00", "iso": "US"}
+{"at": "2026-10-27T10:45:18+00:00", "kind": "SMS_SEND", "case": "success", "to": "+1425***7755", "verdict": "PASS", "reason": "ok", "message_id": "adb6a1e9-c3a8-4a8a-adfb-9dfc16ab20dd", "send_error": null, "max_price_per_part": "0.02", "thread": "WAITING"}
+{"at": "2026-10-27T10:46:54+00:00", "kind": "SMS_METRICS", "case": "success", "sent_parts": 1, "delivered_parts": 1, "window_start": "2026-10-27T10:44:18+00:00", "window_end": "2026-10-27T10:46:53.371775+00:00", "event": "DELIVERY"}
+{"at": "2026-10-27T10:46:55+00:00", "kind": "SMS_DECISION", "case": "success", "event": "DELIVERY", "block_address": false, "opt_out_customer": false, "handoff": false, "note": "delivered; nudge timer started", "thread": "WAITING"}
+{"at": "2026-10-27T10:46:55+00:00", "kind": "SMS_RETRY", "case": "success", "verdict": "PASS", "reason": "ok", "provider_calls": 1, "message_id": "ff24af47-f6b3-4e09-8f55-6dbf73e83b70"}
+{"at": "2026-10-27T10:47:12+00:00", "kind": "SMS_SEND", "case": "failure", "to": "+1425***7167", "verdict": "PASS", "reason": "ok", "message_id": "35f81854-1b85-40d7-b6be-5538ce4b077b", "send_error": null, "max_price_per_part": "0.02", "thread": "WAITING"}
+{"at": "2026-10-27T10:47:33+00:00", "kind": "SMS_OPTOUT_LISTED", "number": "+1425***7755", "list": "Default", "by": "owner, standing in for a STOP reply"}
+{"at": "2026-10-27T10:47:33+00:00", "kind": "SMS_OPTOUT_READ", "numbers": ["+1425***7755"], "kinds": ["OPT_OUT"]}
+{"at": "2026-10-27T10:47:33+00:00", "kind": "SMS_DECISION", "case": "optout", "event": "OPT_OUT", "opt_out_customer": true, "handoff": true, "note": "customer opted out; all sends blocked", "thread": "HANDOFF"}
+{"at": "2026-10-27T10:47:33+00:00", "kind": "SMS_RETRY", "case": "optout", "before": "PASS", "verdict": "BLOCK", "reason": "opt_out", "provider_calls": 0, "thread": "HANDOFF"}
+{"at": "2026-10-27T10:57:39+00:00", "kind": "SMS_METRICS", "case": "failure", "sent_parts": 1, "delivered_parts": 0, "window_start": "2026-10-27T10:47:00+00:00", "window_end": "2026-10-27T10:57:38.080384+00:00", "event": "BOUNCE"}
+{"at": "2026-10-27T10:57:40+00:00", "kind": "SMS_DECISION", "case": "failure", "event": "BOUNCE", "block_address": true, "opt_out_customer": false, "handoff": true, "note": "bounced and no other channel", "thread": "HANDOFF"}
+{"at": "2026-10-27T10:57:40+00:00", "kind": "SMS_RETRY", "case": "failure", "verdict": "BLOCK", "reason": "address_blocked", "provider_calls": 0, "thread": "HANDOFF"}
