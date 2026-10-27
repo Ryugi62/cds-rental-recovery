@@ -1,5 +1,7 @@
 # Rental Recovery: an end-to-end agentic workflow on SES and SMS that stops before it over-sends
 
+Small rental shops chase overdue equipment by phone and text. Here, a thread that closes by customer reply and matches the ledger saves about $0.76 of staff time (assumed 6 minutes at Korea's 2026 minimum wage). The shop pays $0.25 per closed thread; threads handed to a person cost no fee. AWS usage is billed to the shop's own account.
+
 A small equipment-rental shop chases every overdue item by hand: a text or email asking "when will you bring it back?", then a ledger update. This repo runs that conversation end to end on AWS Communication Developer Services (Amazon SES and End User Messaging SMS): open the overdue item, send through an outbound gate (PASS, HOLD, BLOCK or APPROVAL, shown before every send, human or agent), read the reply into quantity and date, check it against the ledger, then post it and close, or hand it to a person with a reason. Delivery, bounce and opt-out events change the next decision.
 
 **What is different:** an AI agent's proposal cannot get around the gate either (one dispatch point, test `test_g11_no_path_to_sender_except_gate`), and the customer's answer is checked against the ledger before anything is posted. The customer scene is a market where two-way SMS is supported (United States, Canada, United Kingdom, Australia in the End User Messaging country table); in South Korea two-way SMS is not supported, so there the conversation runs on email only.
