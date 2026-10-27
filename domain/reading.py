@@ -85,9 +85,28 @@ def ground_suggestion(text: str, today: date, quantity: Optional[int], return_da
     return ReplyReading(q, d, conf, text, "assist")
 
 
+_WEEKDAY_WORDS = [r"mon(day)?", r"tue(s|sday)?", r"wed(nesday)?", r"thu(r|rs|rsday)?", r"fri(day)?", r"sat(urday)?",
+                  r"sun(day)?"]
+
+
+def weekdays_named(text: str) -> set:
+    """Weekday numbers (Monday = 0) the customer's own words name: monday..sunday, mon..sun, 월요일..일요일."""
+    low = text.lower()
+    return {i for i, (ko, _) in enumerate(_WEEKDAYS)
+            if f"{ko}요일" in text or re.search(rf"\b{_WEEKDAY_WORDS[i]}\b", low)}
+
+
+def weekday_conflict(text: str, day: Optional[date]) -> bool:
+    """True when the text names weekday(s) and the date (from the reader or a model) falls on none of them."""
+    named = weekdays_named(text)
+    return bool(named and day is not None and day.weekday() not in named)
+
+
 def compare_with_ledger(reading: ReplyReading, item: UnreturnedItem) -> Comparison:
     if reading.confidence < CONFIDENT or reading.quantity is None or reading.return_date is None:
         return Comparison(False, "low_confidence")
+    if weekday_conflict(reading.raw, reading.return_date):
+        return Comparison(False, "weekday_mismatch")
     if reading.quantity != item.quantity:
         return Comparison(False, "quantity_mismatch")
     return Comparison(True, "match")

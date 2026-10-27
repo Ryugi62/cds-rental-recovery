@@ -1,4 +1,4 @@
-# Rental Recovery: an end-to-end agentic workflow on SES and SMS that stops before it over-sends
+# Rental Recovery: two AWS CDS services, Amazon SES and End User Messaging SMS, run live in an agentic workflow that stops before it over-sends
 
 Small rental shops chase overdue equipment by hand, and an AI agent that helps can over-send. Here, every message, from a person or an agent, goes through one gate first; a thread that closes by customer reply and matches the ledger saves about $0.73 of staff time (assumed 6 minutes at the US federal minimum wage of $7.25, [dol.gov](https://www.dol.gov/agencies/whd/minimum-wage), read 2026-10-27; South Korea is email only, own figure in [docs/ROI.md](docs/ROI.md)). The shop pays $0.25 per closed thread; threads handed to a person cost no fee. The lower bound is shown, not hidden: an unclosed thread costs at most its AWS send cost ($0.0002 for 2 emails, $0.024 for 2 texts), and one closed thread covers 30 unclosed text threads. AWS usage is billed to the shop's own account.
 
@@ -28,20 +28,26 @@ Read from each product's public page on 2026-10-26. "Not shown" means we did not
 
 | Part | Status | Evidence |
 |---|---|---|
-| SES sends through the gate (4) and DELIVERY, BOUNCE, OPT_OUT events read back | Real, us-east-1 sandbox, mailbox simulator and owner inbox only | `docs/live/live-log.jsonl`, `docs/live/EXCERPT.md` |
+| SES sends through the gate (<!--live:ses_sends=4-->4 first sends and <!--live:ses_retries=2-->2 retried sends that passed) and DELIVERY, BOUNCE, OPT_OUT events read back | Real, us-east-1 sandbox, mailbox simulator and owner inbox only | `docs/live/live-log.jsonl`, `docs/live/EXCERPT.md` |
 | Customer reply read into quantity and date, posted, thread CLOSED | Reading is real; the reply travelled by the owner's Gmail, not SES receiving | live-log lines 18-19 |
-| End User Messaging SMS sends through the gate, and the result read back | Real, us-east-1 SMS sandbox, AWS simulator numbers only (the traffic stays inside AWS, no phone receives it): 3 sends PASS from a simulator origination number; delivery read back from CloudWatch `AWS/SMSVoice` (DELIVERY), the failure number not delivered (BOUNCE, retry BLOCK with 0 SMS calls), the account opt-out list read back (OPT_OUT, retry BLOCK with 0 SMS calls). Events come from CloudWatch counts, one send per minute, because the IAM user may not create an SNS event destination | `docs/live/sms-log.jsonl`, `tools/live_sms.py`, `adapters/sms_metrics.py`, `docs/screens/aws-sms-live.png` |
-| Lambda `events_handler` | Deployed without CloudFormation (`tools/deploy_direct.py`) and invoked 3 times: SMS delivery shape carrying the real SMS message id, SES bounce, and an unknown type that comes back `ignored: 1`. The invocations used documented event shapes; AWS did not push them, because SNS is denied to the IAM user | `docs/live/deploy-log.jsonl`, `docs/screens/aws-lambda-deploy.png` |
+| End User Messaging SMS sends through the gate, and the result read back | Real, us-east-1 SMS sandbox, AWS simulator numbers only (the traffic stays inside AWS, no phone receives it): <!--live:sms_sends=3-->3 sends PASS from a simulator origination number; delivery read back from CloudWatch `AWS/SMSVoice` (DELIVERY), the failure number not delivered (BOUNCE, retry BLOCK with 0 SMS calls), the account opt-out list read back (OPT_OUT, retry BLOCK with 0 SMS calls). Events come from CloudWatch counts, one send per minute, because the IAM user may not create an SNS event destination | `docs/live/sms-log.jsonl`, `tools/live_sms.py`, `adapters/sms_metrics.py`, `docs/screens/aws-sms-live.png` |
+| Lambda `events_handler` | Deployed without CloudFormation (`tools/deploy_direct.py`); it borrowed an existing log-only execution role because the IAM user may not create roles (the role name is visible on the screen, not hidden). Invoked 3 times: SMS delivery shape carrying the real SMS message id, SES bounce, and an unknown type that comes back `ignored: 1`. The invocations used documented event shapes; AWS did not push them, because SNS is denied to the IAM user | `docs/live/deploy-log.jsonl`, `docs/screens/aws-lambda-deploy.png` |
 | SES receiving, SNS topics, inbound Lambda (`template.yaml`) | Code, unit tests, `cfn-lint` pass; not deployed. SES receiving needs a domain with an MX record, which this account does not own; SNS `CreateTopic` is refused by IAM | `tests/test_lambda_handlers.py`, [AGENTS.md](AGENTS.md) |
 | AI agent | A scripted agent stands in for AgentCore; it goes through the same gate | `test_g11_no_path_to_sender_except_gate` |
-| Reply-reading assist on Amazon Bedrock (Converse, Nova Micro), called only when the regex reader's confidence is below 0.8 | Code and 17 tests (fake client). Live: 3 Converse calls on 2026-10-27 succeeded (192 input+output tokens on the first, about $0.00003 for all three); 2 answers were grounded in the customer's words and matched the ledger, the third stayed unread and nothing was guessed. Known limit: the first reply says Saturday (Oct 31 on the run's clock, Oct 26) and the model returned Oct 30; the ledger check compares quantity and a date inside the 14-day window, not weekday against date. An earlier attempt on 2026-10-26 was refused by IAM (`AccessDeniedException`) and ended in logged hand-offs; both runs are in the log | `adapters/bedrock.py`, `tests/test_reply_assist.py`, `docs/live/bedrock-log.jsonl` |
+| Reply-reading assist on Amazon Bedrock (Converse, Nova Micro), called only when the regex reader's confidence is below 0.8 | Code and 21 tests (fake client). Live: <!--live:bedrock_calls=6-->6 Converse calls succeeded on 2026-10-27 in two runs of 3 (about $0.00007 in all; the first run was before the weekday check, the second after). Second run, same 3 replies: "saturday" came back as Oct 30 (a Friday) and "friday" as Oct 31 (a Saturday); the weekday check refused both (`weekday_mismatch`), nothing was posted and both went to a person. The third reply stayed unread and nothing was guessed. First run, kept in the log: the Saturday reply was posted as a match for Oct 30, which is the case the check now stops. An attempt on 2026-10-26 was refused by IAM (`AccessDeniedException`) and ended in logged hand-offs | `adapters/bedrock.py`, `domain/reading.py`, `tests/test_reply_assist.py`, `docs/live/bedrock-log.jsonl`, `docs/screens/aws-bedrock.png` |
 | Closure rate 8 of 14 reply variants | Measures the gate and hand-off rules, not language understanding (regex reader, synthetic replies) | `infrastructure/variant_eval.py` |
 | Deployment (`template.yaml`) | CloudFormation `CreateStack` refused by IAM on 2026-10-27 (logged). The parts the IAM user may create were deployed directly: Lambda `cds-rr-events`, SMS configuration set `cds-rr-sms`; SES configuration set `cds-rr` exists from the SES run | `docs/live/deploy-log.jsonl` |
 | Screen | Synthetic data, labelled on every screen | `docs/screens/` |
 
+A partner sells it per shop: install with `sam deploy` into the shop's own AWS account (the five steps in [docs/OFFERING.md](docs/OFFERING.md)), the shop pays $0.25 per closed thread and nothing for a thread handed to a person.
+
 Value is stated as a formula with its lower bound: `N × c × m / 60 × w − N × s × p` ([docs/ROI.md](docs/ROI.md)); base case 23,578 KRW (about $17) per month for 40 overdue items at the Korean minimum wage, or $16.56 at the US federal minimum wage (US row in the same file); low case below zero by the send cost only ($0.008 for 40 threads).
 
 ![Architecture](docs/architecture.png)
+
+## Scaling
+
+What limits it today, measured: the ledger is in memory (the demo and the live runs load it from code, nothing is stored between runs); events are read back from CloudWatch counts, which limits the live SMS run to one send per minute (`tools/live_sms.py`); the SES sandbox allows 200 emails per 24 hours and 1 per second (`get_account`). The design that replaces the polling is in `template.yaml`: SES and SMS events go to an SNS topic and are pushed into the `events_handler` Lambda, so there is no per-minute read and no polling loop. That path is unit-tested but not deployed here (SNS `CreateTopic` is refused by this account's IAM). A stored ledger is not built; it is listed under Not done yet.
 
 ## Gate verdicts on screen (390 px)
 
@@ -59,7 +65,7 @@ python3 -m venv .venv && .venv/bin/pip install pytest boto3
 .venv/bin/python -m infrastructure.web   # open http://127.0.0.1:8765
 ```
 
-Tests: <!--tests-->135<!--/tests--> passing (`tools/check_readme.py` fails if this number drifts).
+Tests: <!--tests-->143<!--/tests--> passing (`tools/check_readme.py` fails if this number drifts).
 
 ## AWS reproduction
 
@@ -100,7 +106,9 @@ Then the live runs: `AWS_PROFILE=<p> python3 tools/live_ses.py send` then `settl
 Eleven steps: text, bounce, held email, approval, delivery, agent nudge, daily-cap block, reply reading, ledger row.
 A second case shows opt-out. Screens at 390px are in `docs/screens/` (`python tools/capture.py` regenerates them and checks for horizontal scroll and text under 16px).
 
-## Live SES run (2026-10-26, us-east-1, sandbox account)
+## Live SES run (2026-10-26 KST, us-east-1, sandbox account)
+
+Times in the log are UTC: 2026-10-25 20:01 to 20:04 UTC is 2026-10-26 05:01 to 05:04 KST.
 
 Log: `docs/live/live-log.jsonl` (excerpt `docs/live/EXCERPT.md`). Four gated sends through `RecoveryService` + `SesEmailSender` (all PASS): owner inbox, `success@`, `bounce@`, `complaint@simulator.amazonses.com`.
 Events read back from the CloudWatch destination of the SES configuration set, then fed to `handle_event`:
@@ -136,7 +144,7 @@ Closed 8 of 14 (57%); all 8 expected-closed reached CLOSED; the 6 others handed 
 
 ## Not done yet
 
-SES receiving on a verified domain (no owned domain), events pushed by SNS into the Lambda (SNS denied to the IAM user; events are read from CloudWatch instead), a CloudFormation deploy (CreateStack denied), SMS to a real phone (the sandbox allows only verified numbers; we used simulator numbers), an AgentCore agent. The live Bedrock run is `AWS_PROFILE=<p> python3 tools/live_bedrock.py`. See SPEC.md S1, S3, S5, G13.
+SES receiving on a verified domain (no owned domain), events pushed by SNS into the Lambda (SNS denied to the IAM user; events are read from CloudWatch instead), a CloudFormation deploy (CreateStack denied), SMS to a real phone (the sandbox allows only verified numbers; we used simulator numbers), a stored ledger, an AgentCore agent. The live Bedrock run is `AWS_PROFILE=<p> python3 tools/live_bedrock.py`. See SPEC.md S1, S3, S5, G13.
 
 ## Pre-existing work and license
 

@@ -106,7 +106,7 @@ class RecoveryService:
                                    "confidence": reading.confidence, "source": reading.source})
         if cmp.matches:
             return ReplyResult(reading, cmp, LedgerPosting(thread.item.item_id, reading.return_date, reading.quantity))
-        follow = self._follow_up(thread, suggestion)
+        follow = None if cmp.reason == "weekday_mismatch" else self._follow_up(thread, suggestion)
         waiting = follow is not None and follow.send_error is None and follow.verdict.verdict is not Verdict.BLOCK
         if not waiting and thread.state is not ThreadState.HANDOFF:
             thread.handoff(cmp.reason)

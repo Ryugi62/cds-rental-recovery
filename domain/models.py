@@ -75,7 +75,7 @@ class ReplyReading:
 @dataclass(frozen=True)
 class Comparison:
     matches: bool
-    reason: str  # match | quantity_mismatch | low_confidence
+    reason: str  # match | quantity_mismatch | low_confidence | weekday_mismatch
 
 
 @dataclass(frozen=True)

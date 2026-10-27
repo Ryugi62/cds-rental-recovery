@@ -185,3 +185,43 @@ def test_g13_client_factory_maps_bedrock_runtime():
         def client(self, name, region_name):
             return (name, region_name)
     assert make_client("bedrock", "us-east-1", B()) == ("bedrock-runtime", "us-east-1")
+
+
+# ---------- G13: weekday word in the customer's text must agree with the date that is posted ----------
+
+from domain.reading import weekday_conflict  # noqa: E402
+
+
+def test_g13_weekday_word_names_the_day_of_the_date():
+    sat, fri = date(2026, 10, 31), date(2026, 10, 30)
+    assert weekday_conflict("back on saturday morning", fri) is True
+    assert weekday_conflict("back on saturday morning", sat) is False
+    assert weekday_conflict("back on Sat", fri) is True and weekday_conflict("see you mon.", date(2026, 11, 2)) is False
+    assert weekday_conflict("friday or saturday", fri) is False  # any named day may match
+    assert weekday_conflict("3 cameras tomorrow", fri) is False  # no weekday word: nothing to check
+    assert weekday_conflict("saturday", None) is False
+
+
+def test_g13_model_date_with_wrong_weekday_is_handed_off_not_posted():
+    monday = datetime(2026, 10, 26, 12, 0)  # saturday is Oct 31; the model says Oct 30 (a Friday)
+    fa = FakeAssistant(AssistSuggestion(3, date(2026, 10, 30), "Which day?", "fake"))
+    svc, reg, email, t = build(fa, now=monday)
+    res = svc.handle_reply(t, "the three cameras will be back on saturday morning")
+    assert res.proposed_posting is None and t.state is ThreadState.HANDOFF
+    assert t.handoff_reason == "weekday_mismatch" and res.comparison.reason == "weekday_mismatch"
+    assert len(email.calls) == 1  # no follow-up sent either: a person decides
+    assert any(e["kind"] == "READ" and e["reason"] == "weekday_mismatch" for e in reg.entries())  # not silent
+
+
+def test_g13_model_date_with_matching_weekday_still_proposes_posting():
+    monday = datetime(2026, 10, 26, 12, 0)
+    fa = FakeAssistant(AssistSuggestion(3, date(2026, 10, 31), None, "fake"))
+    svc, _, _, t = build(fa, now=monday)
+    res = svc.handle_reply(t, "the three cameras will be back on saturday morning")
+    assert res.proposed_posting is not None and res.proposed_posting.return_date == date(2026, 10, 31)
+
+
+def test_g13_regex_reader_iso_date_with_wrong_weekday_is_handed_off():
+    svc, _, _, t = build(None)
+    res = svc.handle_reply(t, "I will bring 3 back on Friday 2026-10-31")  # Oct 31 2026 is a Saturday
+    assert res.proposed_posting is None and t.handoff_reason == "weekday_mismatch"

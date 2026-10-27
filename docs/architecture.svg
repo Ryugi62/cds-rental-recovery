@@ -35,7 +35,7 @@
   <rect x="480" y="210" width="150" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-dasharray="7 5"/>
   <text x="555" y="240" text-anchor="middle" font-weight="700">Amazon SNS</text><text x="555" y="262" text-anchor="middle">events topic</text>
   <rect x="690" y="210" width="150" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-width="2"/>
-  <text x="765" y="240" text-anchor="middle" font-weight="700">Lambda</text><text x="765" y="262" text-anchor="middle">events_handler</text>
+  <text x="765" y="240" text-anchor="middle" font-weight="700">Lambda</text><text x="765" y="262" text-anchor="middle">events_handler</text><text x="765" y="296" text-anchor="middle" font-size="13" fill="#4e5968">deployed, invoked by hand</text>
   <rect x="480" y="440" width="150" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-dasharray="7 5"/>
   <text x="555" y="470" text-anchor="middle" font-weight="700">Amazon SNS</text><text x="555" y="492" text-anchor="middle">inbound topic</text>
   <rect x="690" y="440" width="150" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-dasharray="7 5"/>
@@ -66,7 +66,7 @@
   <path d="M411 178 C 462 205, 458 300, 548 337" stroke="#191f28" stroke-width="2" fill="none" marker-end="url(#a)"/>
   <path d="M411 274 Q 452 300 512 337" stroke="#191f28" stroke-width="2" fill="none" marker-end="url(#a)"/>
   <path d="M632 245 L687 245" stroke="#191f28" stroke-dasharray="7 5" marker-end="url(#a)"/>
-  <path d="M780 208 L790 167" stroke="#191f28" stroke-width="2" marker-end="url(#a)"/>
+  <path d="M780 208 L790 167" stroke="#191f28" stroke-dasharray="7 5" marker-end="url(#a)"/>
   <path d="M682 350 C 648 300, 652 200, 728 167" stroke="#191f28" stroke-width="2" fill="none" marker-end="url(#a)"/>
   <!-- arrows: replies -->
   <path d="M411 475 L477 475" stroke="#191f28" stroke-dasharray="7 5" marker-end="url(#a)"/>
