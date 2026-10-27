@@ -31,7 +31,7 @@ Read from each product's public page on 2026-10-26. "Not shown" means we did not
 | SES receiving, SNS, Lambda (`template.yaml`) | Code, unit tests, `cfn-lint` pass; not deployed (author's IAM user lacks CloudFormation) | `tests/test_lambda_handlers.py`, [AGENTS.md](AGENTS.md) |
 | End User Messaging SMS send and events | Adapter and parsers unit-tested; no live SMS sent | `tests/test_adapters.py` |
 | AI agent | A scripted agent stands in for AgentCore; it goes through the same gate | `test_g11_no_path_to_sender_except_gate` |
-| Reply-reading assist on Amazon Bedrock (Converse, Nova Micro), called only when the regex reader's confidence is below 0.8 | Code and 17 tests (fake client). Live: 3 Converse calls attempted on 2026-10-26, all refused by IAM (`AccessDeniedException`); each ended in a logged hand-off, not a silent pass. No model answer is live yet | `adapters/bedrock.py`, `tests/test_reply_assist.py`, `docs/live/bedrock-log.jsonl` |
+| Reply-reading assist on Amazon Bedrock (Converse, Nova Micro), called only when the regex reader's confidence is below 0.8 | Code and 17 tests (fake client). Live: 3 Converse calls on 2026-10-27 succeeded (192 input+output tokens on the first, about $0.00003 for all three); 2 answers were grounded in the customer's words and matched the ledger, the third stayed unread and nothing was guessed. An earlier attempt on 2026-10-26 was refused by IAM (`AccessDeniedException`) and ended in logged hand-offs; both runs are in the log | `adapters/bedrock.py`, `tests/test_reply_assist.py`, `docs/live/bedrock-log.jsonl` |
 | Closure rate 8 of 14 reply variants | Measures the gate and hand-off rules, not language understanding (regex reader, synthetic replies) | `infrastructure/variant_eval.py` |
 | Deployment (`template.yaml`) | Not deployed | `cfn-lint` only |
 | Screen | Synthetic data, labelled on every screen | `docs/screens/` |
@@ -91,7 +91,7 @@ Closed 8 of 14 (57%); all 8 expected-closed reached CLOSED; the 6 others handed 
 
 ## Not done yet
 
-SES receiving on a verified domain, a live End User Messaging SMS send, a CloudFormation deploy by the author (not deployed), an AgentCore agent, a live Bedrock answer (the author's IAM user has no `bedrock:InvokeModel`; with it, `AWS_PROFILE=<p> python3 tools/live_bedrock.py` is the one command). See SPEC.md S1, S3, S5, G13.
+SES receiving on a verified domain, a live End User Messaging SMS send, a CloudFormation deploy by the author (not deployed), an AgentCore agent. The live Bedrock run is `AWS_PROFILE=<p> python3 tools/live_bedrock.py`. See SPEC.md S1, S3, S5, G13.
 
 ## Pre-existing work and license
 

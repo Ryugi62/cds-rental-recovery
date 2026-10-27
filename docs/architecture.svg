@@ -67,14 +67,14 @@
   <path d="M918 248 Q760 210 600 168" stroke="#8b95a1" stroke-dasharray="2 4" fill="none" marker-end="url(#g)"/>
   <path d="M918 168 L918 338" stroke="#191f28" stroke-width="2" marker-end="url(#a)"/>
 
-  <!-- Bedrock reply assist (code + tests; live calls refused by IAM on 2026-10-26) -->
-  <rect x="846" y="440" width="130" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-dasharray="7 5"/>
+  <!-- Bedrock reply assist (3 live Converse calls on 2026-10-27) -->
+  <rect x="846" y="440" width="130" height="70" rx="12" fill="#fff" stroke="#191f28" stroke-width="2"/>
   <text x="911" y="470" text-anchor="middle" font-weight="700">Amazon Bedrock</text><text x="911" y="492" text-anchor="middle" font-size="14">assist, conf &lt; 0.8</text>
-  <path d="M963 150 Q996 300 966 437" stroke="#191f28" stroke-dasharray="7 5" fill="none" marker-end="url(#a)"/>
+  <path d="M963 150 Q996 300 966 437" stroke="#191f28" stroke-width="2" fill="none" marker-end="url(#a)"/>
 
   <!-- legend -->
   <rect x="500" y="540" width="476" height="80" rx="12" fill="#f9fafb" stroke="#e5e8eb"/>
-  <path d="M516 563 L566 563" stroke="#191f28" stroke-width="2"/><text x="576" y="568">run live on AWS, 2026-10-26 (docs/live)</text>
+  <path d="M516 563 L566 563" stroke="#191f28" stroke-width="2"/><text x="576" y="568">run live on AWS, 2026-10-26 and 10-27 (docs/live)</text>
   <path d="M516 586 L566 586" stroke="#191f28" stroke-dasharray="7 5"/><text x="576" y="591">code + tests + template.yaml, not deployed yet</text>
   <path d="M516 609 L566 609" stroke="#8b95a1" stroke-dasharray="2 4"/><text x="576" y="614" fill="#4e5968">planned (scripted agent stands in today)</text>
 </svg>
